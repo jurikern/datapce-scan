@@ -18,9 +18,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://codeberg.org/datapce/datapce-scan"
-Source = "https://codeberg.org/datapce/datapce-scan"
-Issues = "https://codeberg.org/datapce/datapce-scan/issues"
+Homepage = "https://github.com/jurikern/datapce-scan"
+Source = "https://github.com/jurikern/datapce-scan"
+Issues = "https://github.com/jurikern/datapce-scan/issues"
 
 [project.scripts]
 datapce-scan = "datapce_scan.cli:main"

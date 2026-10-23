@@ -4,21 +4,16 @@ Read-only, local, nothing sent, no command text printed.
 
 `datapce-scan` counts what a coding agent ran, from the agent logs already on your disk. It also replays public block lists over your past commands and counts what each list would have denied. Nothing installs into the agent. The tool does not block, change or send anything.
 
-Home: https://codeberg.org/datapce/datapce-scan
+Home: https://github.com/jurikern/datapce-scan (mirror: https://codeberg.org/datapce/datapce-scan)
 
 ## Quick start
 
 ```
-uvx datapce-scan
-uvx datapce-scan replay --rules all
+uvx --from git+https://github.com/jurikern/datapce-scan.git datapce-scan
+uvx --from git+https://github.com/jurikern/datapce-scan.git datapce-scan replay --rules all
 ```
 
-Until the package is on PyPI, run it from the repository:
-
-```
-uvx --from git+https://codeberg.org/datapce/datapce-scan.git datapce-scan
-uvx --from git+https://codeberg.org/datapce/datapce-scan.git datapce-scan replay --rules all
-```
+The package is not on PyPI yet. Do not install a `datapce-scan` package from PyPI until this README says it is published.
 
 From a local checkout: `uvx --from . datapce-scan`.
 
