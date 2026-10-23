@@ -1,0 +1,22 @@
+Third-party rule data in this directory
+
+sage.json
+  Source: https://github.com/gendigitalinc/sage/tree/main/threats (commit 8817dcee4c05ff754da050553b44909ce092c5b2, fetched 2026-10-22)
+  Rule author: Gen Digital Inc.
+  Licence: Detection Rule License (DRL) 1.1, https://github.com/gendigitalinc/sage/blob/main/threats/LICENSE
+  Change: YAML converted to JSON; macros expanded; action set from the Sage "balanced" thresholds.
+
+cupcake-examples.json
+  Source: https://github.com/eqtylab/cupcake (commit 27b94b84f6cf555bfde5817deae323ee8cb00cea, fetched 2026-10-22)
+  Files: examples/fixtures/security_policy.rego, examples/fixtures/git_workflow.rego,
+         examples/opencode/0_Welcome/minimal_protection.rego
+  Copyright EQTY Lab. Licence: Apache License 2.0, https://github.com/eqtylab/cupcake/blob/main/LICENSE
+  Change: Rego contains/lower tests written as JSON substring rules.
+
+cc-safety-net.json
+  Source: https://github.com/kenryu42/cc-safety-net (commit 6dc120f4b9475dbc8bbb23faf9011aab5f4ed59e, fetched 2026-10-22)
+  Licence of the source: MIT, https://github.com/kenryu42/cc-safety-net/blob/main/LICENSE
+  This file is an own paraphrase of the rule logic. No code or text is copied, except rule ids.
+
+datapce-6.json, datapce-6-v0.json
+  Own work (datapce guard v0 deny list).

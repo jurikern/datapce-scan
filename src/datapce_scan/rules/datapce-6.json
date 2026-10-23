@@ -1,0 +1,24 @@
+{
+ "name": "datapce-6",
+ "version": 2,
+ "description": "The 6 deny rules of datapce guard v0, with the v0 matching defects fixed: shell tokenizer, rm -fr equals rm -rf, '/' is the root only, '~' and $HOME are the home directory itself, git flags found in any position.",
+ "source_url": "datapce guard v0 deny list (SEC3), not published",
+ "licence": "own work (datapce)",
+ "reuse": "own",
+ "fetched": "2026-10-22",
+ "attribution": "datapce guard v0",
+ "rules": [
+  {"name": "rm-rf-root", "action": "deny",
+   "match": {"kind": "rm", "flags": ["recursive", "force"], "target": ["root"]}},
+  {"name": "rm-rf-tilde", "action": "deny",
+   "match": {"kind": "rm", "flags": ["recursive", "force"], "target": ["home"], "written": ["~"]}},
+  {"name": "rm-rf-home-var", "action": "deny",
+   "match": {"kind": "rm", "flags": ["recursive", "force"], "target": ["home"], "written": ["$HOME", "${HOME}"]}},
+  {"name": "git-push-force", "action": "deny",
+   "match": {"kind": "argv", "cmd": ["git"], "sub": ["push"], "any": [{"long": "--force"}]}},
+  {"name": "git-push-f", "action": "deny",
+   "match": {"kind": "argv", "cmd": ["git"], "sub": ["push"], "any": [{"short": "f"}]}},
+  {"name": "git-reset-hard", "action": "deny",
+   "match": {"kind": "argv", "cmd": ["git"], "sub": ["reset"], "any": [{"long": "--hard"}]}}
+ ]
+}

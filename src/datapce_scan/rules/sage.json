@@ -1,0 +1,939 @@
+{
+ "name": "sage",
+ "version": 1,
+ "description": "Sage command threat rules (commands.yaml and mac-commands.yaml), regular expressions with the _macros.yaml macros expanded, applied to the whole command as Sage does. Action from the Sage default 'balanced' thresholds: confidence >= 0.85 deny, >= 0.50 ask. A literal prefilter per rule (a word the pattern needs) skips the regex when the word is absent; it does not change results. Not modelled: trusted-domain suppression for CLT-CMD-001/002, URL and package checks, Windows rules.",
+ "source_url": "https://github.com/gendigitalinc/sage/tree/main/threats",
+ "files": [
+  "threats/commands.yaml",
+  "threats/mac-commands.yaml",
+  "threats/_macros.yaml"
+ ],
+ "upstream_commit": "8817dcee4c05ff754da050553b44909ce092c5b2",
+ "licence": "DRL-1.1",
+ "licence_url": "https://github.com/gendigitalinc/sage/blob/main/threats/LICENSE",
+ "reuse": "copied (rule ids, titles, patterns), with author, link and licence as DRL-1.1 requires",
+ "fetched": "2026-10-22",
+ "attribution": "rule author Gen Digital Inc. (Sage)",
+ "rules": [
+  {
+   "name": "CLT-CMD-001",
+   "action": "deny",
+   "title": "Remote code execution via curl pipe to shell",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?curl(?:\\.exe)?(?![-\\w.])\\s[^|]*\\|\\s*(?:bash|sh|zsh|dash|ksh|ash|busybox|powershell(?:\\.exe)?|pwsh(?:\\.exe)?)(?![-\\w.])",
+    "prefilter": [
+     "curl"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-002",
+   "action": "deny",
+   "title": "Remote code execution via wget pipe to shell",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?wget(?:\\.exe)?(?![-\\w.])\\s[^|]*\\|\\s*(?:bash|sh|zsh|dash|ksh|ash|busybox|powershell(?:\\.exe)?|pwsh(?:\\.exe)?)(?![-\\w.])",
+    "prefilter": [
+     "wget"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-003",
+   "action": "deny",
+   "title": "Reverse shell via /dev/tcp",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?(?:bash|sh|zsh|dash|ksh|ash|busybox|powershell(?:\\.exe)?|pwsh(?:\\.exe)?)(?![-\\w.])\\s+-i\\b[\\s\\S]{0,160}/dev/tcp/",
+    "prefilter": [
+     "sh",
+     "busybox"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-004",
+   "action": "deny",
+   "title": "Reverse shell via netcat -e",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?nc(?![-\\w.]).*\\s-e\\s",
+    "prefilter": [
+     "nc"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-005",
+   "action": "deny",
+   "title": "Interactive reverse shell via bash",
+   "severity": "critical",
+   "confidence": 0.85,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?bash(?![-\\w.])\\s+-i\\s+>\\s*&\\s*/dev/",
+    "prefilter": [
+     "bash"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-006",
+   "action": "deny",
+   "title": "Recursive forced deletion from root",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?rm(?![-\\w.])\\s+(-[a-zA-Z]*f[a-zA-Z]*\\s+)?(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/(\\s|$|[;&|*])|(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?rm(?![-\\w.])\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?(-[a-zA-Z]*f[a-zA-Z]*\\s+)?/(\\s|$|[;&|*])|(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?rm(?![-\\w.])\\s+-[a-zA-Z]*rf[a-zA-Z]*\\s+/(\\s|$|[;&|*])",
+    "prefilter": [
+     "rm"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-007",
+   "action": "deny",
+   "title": "Filesystem format command",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?mkfs(?:\\.(?:ext[234]|xfs|btrfs|vfat|fat|msdos|exfat|ntfs|hfsplus|udf|minix|bfs|cramfs|f2fs|jfs|reiserfs|nilfs2))?(?![-\\w.])(?=\\s+\\S)",
+    "prefilter": [
+     "mkfs"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-008",
+   "action": "deny",
+   "title": "Direct disk write via dd",
+   "severity": "warning",
+   "confidence": 0.85,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?dd(?![-\\w.])\\s+if=.*of=/dev/",
+    "prefilter": [
+     "dd"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-009",
+   "action": "deny",
+   "title": "Secure file destruction via shred",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?shred(?![-\\w.])(?=\\s+\\S)",
+    "prefilter": [
+     "shred"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-010",
+   "action": "deny",
+   "title": "Download and execute chain",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?(curl|wget)(?:\\.exe)?(?![-\\w.])\\s[\\s\\S]*?(&&|;)\\s*chmod\\s+\\+x",
+    "prefilter": [
+     "curl",
+     "wget"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-011",
+   "action": "ask",
+   "title": "Overly permissive file permissions",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?chmod(?![-\\w.])\\s+777\\b",
+    "prefilter": [
+     "chmod"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-012",
+   "action": "ask",
+   "title": "Passwordless sudo configuration",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "NOPASSWD",
+    "prefilter": [
+     "NOPASSWD"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-013",
+   "action": "ask",
+   "title": "Possible data exfiltration of sensitive files",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?curl(?:\\.exe)?(?![-\\w.])\\s[^|;]*(-d|--data|--data-binary)\\s\\S*(/etc/passwd|/etc/shadow|\\.ssh/|id_rsa|credentials|secrets)",
+    "prefilter": [
+     "curl"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-014",
+   "action": "deny",
+   "title": "Privileged pipe-to-shell (sudo curl/wget piped to shell)",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?sudo(?![-\\w.])\\s+(curl|wget)(?:\\.exe)?(?![-\\w.])\\s[^|]*\\|\\s*(?:bash|sh|zsh|dash|ksh|ash|busybox|powershell(?:\\.exe)?|pwsh(?:\\.exe)?)(?![-\\w.])",
+    "prefilter": [
+     "sudo"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-015",
+   "action": "ask",
+   "title": "Python one-liner invoking shell/exec/subprocess call",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?python[3]?(?![-\\w.])\\s+-c\\s+[\"'][\\s\\S]{0,2048}?(?:os\\.(?:system|popen|exec[lv]?[ep]?e?)|subprocess\\.(?:run|call|Popen|check_output|check_call|getoutput|getstatusoutput)|__import__)\\s*\\(",
+    "prefilter": [
+     "python"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-016",
+   "action": "deny",
+   "title": "Process substitution executing remote content",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?bash(?![-\\w.])\\s+<\\(\\s*(curl|wget)\\b",
+    "prefilter": [
+     "bash"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-017",
+   "action": "deny",
+   "title": "Eval executing remote download command",
+   "severity": "warning",
+   "confidence": 0.85,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?eval(?![-\\w.])[^;|]*\\b(curl|wget)\\b",
+    "prefilter": [
+     "eval"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-018",
+   "action": "deny",
+   "title": "xargs dispatching download or shell execution",
+   "severity": "warning",
+   "confidence": 0.85,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?xargs(?![-\\w.])\\s+(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:(?:bash|sh|zsh|dash|ksh|ash|busybox|powershell(?:\\.exe)?|pwsh(?:\\.exe)?)(?![-\\w.])(?:\\s+-[\\w]*c\\b\\s+(?:\"(?!\\s*(?:head|cat|wc)\\b)[^\"\\r\\n]{0,240}(?:\\{\\}|\\$[@*]|\\$\\d)[^\"\\r\\n]{0,240}\"|'(?!\\s*(?:head|cat|wc)\\b)[^'\\r\\n]{0,240}(?:\\{\\}|\\$[@*]|\\$\\d)[^'\\r\\n]{0,240}')|(?!\\s+-[\\w]*c\\b))|(curl|wget)(?:\\.exe)?(?![-\\w.])[^|;\\r\\n]{0,400}(?:-d|--data|--data-binary|--upload-file|-T|--post-file|--post-data|--body-file)\\b)",
+    "prefilter": [
+     "xargs"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-019",
+   "action": "deny",
+   "title": "find -exec executing shell or download commands",
+   "severity": "warning",
+   "confidence": 0.85,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?find(?![-\\w.])[^|;]*-exec\\s+(?:bash|sh|zsh|dash|ksh|ash|busybox|powershell(?:\\.exe)?|pwsh(?:\\.exe)?|curl|wget)\\b",
+    "prefilter": [
+     "find"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-020",
+   "action": "ask",
+   "title": "DNS exfiltration via command substitution as subdomain label",
+   "severity": "warning",
+   "confidence": 0.8,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?(nslookup|dig|host)(?![-\\w.])[^|;]*\\$\\([^)]+\\)\\.[a-zA-Z]",
+    "prefilter": [
+     "nslookup",
+     "dig",
+     "host"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-021",
+   "action": "ask",
+   "title": "DNS exfiltration via backtick substitution as subdomain label",
+   "severity": "warning",
+   "confidence": 0.8,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?(nslookup|dig|host)(?![-\\w.])[^|;]*`[^`]+`\\.[a-zA-Z]",
+    "prefilter": [
+     "nslookup",
+     "dig",
+     "host"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-022",
+   "action": "ask",
+   "title": "Loop executing shell or download commands",
+   "severity": "warning",
+   "confidence": 0.8,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?(while|for)(?![-\\w.])[^;]*;\\s*do[^;]*(\\b(?:bash|sh|zsh|dash|ksh|ash|busybox|powershell(?:\\.exe)?|pwsh(?:\\.exe)?)\\s+-c\\b|\\b(curl|wget)\\b[^;]*\\|\\s*(?:sudo\\s+)?(?:env\\s+)?(?:[^\\s\"']*[\\\\/])?(?:bash|sh|zsh|dash|ksh|ash|busybox|powershell(?:\\.exe)?|pwsh(?:\\.exe)?)\\b|\\b(curl|wget)\\b[^;]*(?:(-d|--data|--data-binary)\\s+['\\\"]?@\\S+|(--upload-file|-T)\\s+['\\\"]?\\S+))",
+    "prefilter": [
+     "while",
+     "for"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-023",
+   "action": "deny",
+   "title": "Python reverse shell via socket",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?python[23]?(?![-\\w.])\\s+-c.*socket.*connect.*(\\/bin\\/zsh|\\/bin\\/sh|\\/bin\\/bash)",
+    "prefilter": [
+     "python"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-024",
+   "action": "deny",
+   "title": "Ruby reverse shell via TCPSocket",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?ruby(?![-\\w.])\\s+-e.*TCPSocket.*exec.*(\\/bin\\/zsh|\\/bin\\/sh)",
+    "prefilter": [
+     "ruby"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-025",
+   "action": "deny",
+   "title": "Zsh reverse shell pattern",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?zsh(?![-\\w.])\\s+-c\\b.*\\b(exec|socket|/dev/tcp)\\b",
+    "prefilter": [
+     "zsh"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-026",
+   "action": "deny",
+   "title": "Recursive deletion of critical system directory",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?rm(?![-\\w.])\\s+(-[a-zA-Z]+\\s+)*-[a-zA-Z]*[rR][a-zA-Z]*(\\s+-[a-zA-Z]+)*\\s+/(home|Users|etc|usr|var|boot|bin|sbin|lib|lib64|opt|root|System|Applications|Library|Volumes|private|mnt)\\b/?(\\s|$|[;&|])",
+    "prefilter": [
+     "rm"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-027",
+   "action": "ask",
+   "title": "Deletion of .env file",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?rm(?![-\\w.])\\s+(-{1,2}[\\w-]+(=\\S+)?\\s+)*(\\S+[\\\\/])?\\.env(?!\\S*\\.(example|sample|template|dist)\\b)(\\.(local|production|prod|staging|stage|development|dev|test))?\\b",
+    "prefilter": [
+     "rm"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-028",
+   "action": "ask",
+   "title": "Deletion of database file",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?rm(?![-\\w.])\\s+(-{1,2}[\\w-]+(=\\S+)?\\s+)*\\S+\\.(db|sqlite|sqlite3)\\b",
+    "prefilter": [
+     "rm"
+    ]
+   }
+  },
+  {
+   "name": "CLT-CMD-029",
+   "action": "ask",
+   "title": "Deletion of .git directory",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?(rm|del|rmdir|rd|Remove-Item|unlink)(?![-\\w.]).*(\\s|[\\\\/])\\.git(\\s|[\\\\/]|$)",
+    "ignore_case": true,
+    "prefilter": [
+     "rm",
+     "del",
+     "rmdir",
+     "rd",
+     "Remove-Item",
+     "unlink"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-001",
+   "action": "deny",
+   "title": "AppleScript shell execution via osascript -e",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?osascript(?![-\\w.]).*-e.*do shell script",
+    "ignore_case": true,
+    "prefilter": [
+     "osascript"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-002",
+   "action": "deny",
+   "title": "JavaScript for Automation (JXA) execution via osascript",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?osascript(?![-\\w.]).*-l\\s+JavaScript",
+    "ignore_case": true,
+    "prefilter": [
+     "osascript"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-003",
+   "action": "deny",
+   "title": "Piped input to osascript (stdin AppleScript execution)",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "\\|\\s*osascript(?![-\\w.])",
+    "prefilter": [
+     "osascript"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-004",
+   "action": "deny",
+   "title": "Remote script download piped to osascript",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?(curl|wget)(?![-\\w.]).*\\|.*osascript(?![-\\w.])|(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?osascript(?![-\\w.]).*(curl|wget)(?![-\\w.])",
+    "ignore_case": true,
+    "prefilter": [
+     "osascript"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-005",
+   "action": "ask",
+   "title": "Launch Terminal application via open -a",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?open(?![-\\w.])\\s+-a\\s+Terminal",
+    "prefilter": [
+     "open"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-006",
+   "action": "ask",
+   "title": "Launch application hidden/background via open",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?open(?![-\\w.])\\s+(-[jg]|--hide|--background)",
+    "prefilter": [
+     "open"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-007",
+   "action": "ask",
+   "title": "Directory Services user/group manipulation via dscl",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?dscl(?![-\\w.]).*(-create|-delete|-passwd|-append)",
+    "prefilter": [
+     "dscl"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-008",
+   "action": "ask",
+   "title": "Network proxy/DNS manipulation via networksetup",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?networksetup(?![-\\w.]).*(-setwebproxy|-setsocksfirewallproxy|-setdnsservers|-setautoproxyurl)",
+    "ignore_case": true,
+    "prefilter": [
+     "networksetup"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-009",
+   "action": "deny",
+   "title": "Enable remote login/wake via systemsetup",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?systemsetup(?![-\\w.]).*(-setremotelogin\\s+on|-setwakeonnetworkaccess\\s+on)",
+    "ignore_case": true,
+    "prefilter": [
+     "systemsetup"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-010",
+   "action": "deny",
+   "title": "Apple Remote Desktop activation via kickstart",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?kickstart(?![-\\w.]).*-activate.*-configure",
+    "ignore_case": true,
+    "prefilter": [
+     "kickstart"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-011",
+   "action": "ask",
+   "title": "Silent package install via installer command",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?installer(?![-\\w.]).*-pkg.*-target",
+    "ignore_case": true,
+    "prefilter": [
+     "installer"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-012",
+   "action": "ask",
+   "title": "Mount remote DMG via hdiutil",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?hdiutil(?![-\\w.]).*\\b(attach|mount)\\b.*https?://",
+    "ignore_case": true,
+    "prefilter": [
+     "hdiutil"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-013",
+   "action": "ask",
+   "title": "Package receipt removal via pkgutil --forget",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?pkgutil(?![-\\w.]).*--forget",
+    "prefilter": [
+     "pkgutil"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-014",
+   "action": "deny",
+   "title": "Disk erase/partition via diskutil",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?diskutil(?![-\\w.]).*\\b(eraseDisk|partitionDisk|secureErase)\\b",
+    "prefilter": [
+     "diskutil"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-015",
+   "action": "deny",
+   "title": "Time Machine backup deletion/disable via tmutil (ransomware indicator)",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?tmutil(?![-\\w.]).*\\b(delete|disable)\\b",
+    "prefilter": [
+     "tmutil"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-016",
+   "action": "deny",
+   "title": "Gatekeeper disable via spctl --master-disable",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?spctl(?![-\\w.]).*--master-disable",
+    "prefilter": [
+     "spctl"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-017",
+   "action": "deny",
+   "title": "System Integrity Protection disable via csrutil",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?csrutil(?![-\\w.]).*\\bdisable\\b",
+    "prefilter": [
+     "csrutil"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-018",
+   "action": "deny",
+   "title": "Quarantine flag disable via defaults write LSQuarantine",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?defaults(?![-\\w.]).*\\bwrite\\b.*LSQuarantine",
+    "ignore_case": true,
+    "prefilter": [
+     "defaults"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-019",
+   "action": "ask",
+   "title": "Quarantine attribute removal via xattr",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?xattr(?![-\\w.]).*-d.*com\\.apple\\.quarantine",
+    "prefilter": [
+     "xattr"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-020",
+   "action": "deny",
+   "title": "Packet filter (firewall) disable via pfctl -d",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?pfctl(?![-\\w.]).*\\s-d\\b",
+    "prefilter": [
+     "pfctl"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-021",
+   "action": "deny",
+   "title": "TCC privacy permissions reset via tccutil",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?tccutil(?![-\\w.]).*\\breset\\b",
+    "prefilter": [
+     "tccutil"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-022",
+   "action": "deny",
+   "title": "Unload macOS security daemon via launchctl",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?launchctl(?![-\\w.]).*\\b(unload|bootout)\\b.*(com\\.apple\\.MRT|com\\.apple\\.XProtect|com\\.apple\\.security)",
+    "ignore_case": true,
+    "prefilter": [
+     "launchctl"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-023",
+   "action": "deny",
+   "title": "Modify macOS security-related defaults",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?defaults(?![-\\w.]).*\\bwrite\\b.*(com\\.apple\\.Finder\\s+AppleShowAllFiles|com\\.apple\\.LaunchServices\\s+LSQuarantine|com\\.apple\\.loginwindow)",
+    "ignore_case": true,
+    "prefilter": [
+     "defaults"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-024",
+   "action": "deny",
+   "title": "User password change via dscl",
+   "severity": "critical",
+   "confidence": 0.9,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?dscl(?![-\\w.]).*\\s-passwd\\b",
+    "prefilter": [
+     "dscl"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-025",
+   "action": "deny",
+   "title": "Add user to admin group via dseditgroup",
+   "severity": "critical",
+   "confidence": 0.95,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?dseditgroup(?![-\\w.]).*-o\\s+edit.*-a.*admin",
+    "prefilter": [
+     "dseditgroup"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-026",
+   "action": "ask",
+   "title": "Create home directory for user via createhomedir",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?createhomedir(?![-\\w.])(?=\\s+\\S)",
+    "prefilter": [
+     "createhomedir"
+    ]
+   }
+  },
+  {
+   "name": "CLT-MAC-CMD-027",
+   "action": "ask",
+   "title": "Silent screen capture via screencapture",
+   "severity": "warning",
+   "confidence": 0.6,
+   "author": "Gen Digital Inc.",
+   "file": "threats/mac-commands.yaml",
+   "match": {
+    "kind": "regex",
+    "pattern": "(?:^|[;&|(\\n`])\\s*(?:(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:\\bfind\\s[^;&|(\\n\"']{0,200}?-exec(?:dir)?\\s|\\bcmd(?:\\.exe)?\\s+(?:/[A-Za-z]+(?::\\S+)?\\s+)*/[ckCK]\\s*[\"']?|\\b(?:bash|sh|zsh|dash|ksh|ash|busybox)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*(?:[\"']|(?=[^\\s\"']+(?:$|[;&|(\\n`])))|\\b(?:powershell|pwsh)(?:\\.exe)?\\s+(?:-{1,2}[\\w-]+\\s+)*-{1,2}[A-Za-z]*[cC](?:ommand)?\\s*[\"']?|\\bssh\\s+(?:[^\\s\"']+\\s+){1,6}[\"']))?\\s*(?:(?:sudo|doas|env|nohup|time|xargs|wsl(?:\\.exe)?)\\s+|--\\s+|--?[\\w][\\w{}.,:-]*(?:=\\S+|\\s[^\\s\\-=][^\\s=]*)?\\s+|[A-Za-z_]\\w*=\\S*\\s+)*(?:[^\\s\"';|&]{0,200}[\\\\/])?screencapture(?![-\\w.]).*(-x|-C)",
+    "prefilter": [
+     "screencapture"
+    ]
+   }
+  }
+ ]
+}

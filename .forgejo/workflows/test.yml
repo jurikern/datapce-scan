@@ -1,0 +1,22 @@
+# Forgejo Actions (Codeberg). NOT MEASURED: this workflow has not run; it runs after the first push.
+name: test
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: docker
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    container:
+      image: python:${{ matrix.python }}-slim
+    steps:
+      - name: Get the code
+        run: |
+          apt-get update -qq && apt-get install -y -qq git >/dev/null
+          git clone --depth 1 "${{ github.server_url }}/${{ github.repository }}.git" src
+          cd src && git fetch --depth 1 origin "${{ github.sha }}" && git checkout -q "${{ github.sha }}"
+      - name: Run the tests
+        working-directory: src
+        run: python -m unittest discover -s tests -t . -v

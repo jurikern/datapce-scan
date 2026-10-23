@@ -1,0 +1,18 @@
+{
+ "name": "datapce-6-v0",
+ "version": 1,
+ "description": "The datapce guard v0 deny list with the v0 matcher: a normalized segment starts with the pattern. Kept to compare with datapce-6. Known defects: no shell parser; 'rm -rf /' matches every absolute path; misses 'rm -fr'.",
+ "source_url": "datapce guard v0 deny list (SEC3), not published",
+ "licence": "own work (datapce)",
+ "reuse": "own",
+ "fetched": "2026-10-22",
+ "attribution": "datapce guard v0",
+ "rules": [
+  {"name": "rm-rf-root", "action": "deny", "match": {"kind": "prefix", "pattern": "rm -rf /"}},
+  {"name": "rm-rf-tilde", "action": "deny", "match": {"kind": "prefix", "pattern": "rm -rf ~"}},
+  {"name": "rm-rf-home-var", "action": "deny", "match": {"kind": "prefix", "pattern": "rm -rf $HOME"}},
+  {"name": "git-push-force", "action": "deny", "match": {"kind": "prefix", "pattern": "git push --force"}},
+  {"name": "git-push-f", "action": "deny", "match": {"kind": "prefix", "pattern": "git push -f"}},
+  {"name": "git-reset-hard", "action": "deny", "match": {"kind": "prefix", "pattern": "git reset --hard"}}
+ ]
+}

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datapce-scan"
+version = "0.1.0"
+description = "Read-only count of what a coding agent ran, and what public block lists would have denied, from logs already on disk."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE", "src/datapce_scan/rules/NOTICE"]
+authors = [{name = "jkn", email = "jkn@datapce.com"}]
+dependencies = []
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Environment :: Console",
+]
+
+[project.urls]
+Homepage = "https://codeberg.org/datapce/datapce-scan"
+Source = "https://codeberg.org/datapce/datapce-scan"
+Issues = "https://codeberg.org/datapce/datapce-scan/issues"
+
+[project.scripts]
+datapce-scan = "datapce_scan.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["datapce_scan"]
+
+[tool.setuptools.package-data]
+datapce_scan = ["rules/*.json", "rules/NOTICE"]

@@ -1,0 +1,31 @@
+{
+ "name": "cupcake-examples",
+ "version": 1,
+ "description": "The Bash rules of two Cupcake example policies, replayed as published: plain text 'contains' tests on the whole command (Rego contains/lower). These are examples, not Cupcake defaults.",
+ "source_url": "https://github.com/eqtylab/cupcake",
+ "files": ["examples/fixtures/security_policy.rego", "examples/fixtures/git_workflow.rego", "examples/opencode/0_Welcome/minimal_protection.rego"],
+ "upstream_commit": "27b94b84f6cf555bfde5817deae323ee8cb00cea",
+ "licence": "Apache-2.0",
+ "licence_url": "https://github.com/eqtylab/cupcake/blob/main/LICENSE",
+ "reuse": "copied (rule ids and test strings), with attribution",
+ "fetched": "2026-10-22",
+ "attribution": "Cupcake, EQTY Lab",
+ "rules": [
+  {"name": "security_policy:SECURITY-001", "action": "deny",
+   "match": {"kind": "substring", "any": ["rm -rf", "sudo rm", "format", "fdisk", "> /dev/"]}},
+  {"name": "security_policy:SECURITY-003", "action": "deny",
+   "match": {"kind": "substring", "all": ["rmdir", "/tmp/"], "lower": true}},
+  {"name": "security_policy:SECURITY-004", "action": "deny",
+   "match": {"kind": "substring", "all": ["rm ", "/tmp/"], "none": ["rm -rf"], "lower": true}},
+  {"name": "minimal_protection:GIT_NO_VERIFY", "action": "deny",
+   "match": {"kind": "substring", "all": ["git commit", "--no-verify"]}},
+  {"name": "minimal_protection:GIT_FORCE_PUSH", "action": "deny",
+   "match": {"kind": "substring", "all": ["git push", "--force"]}},
+  {"name": "minimal_protection:DANGEROUS_RM", "action": "deny",
+   "match": {"kind": "substring", "all": ["rm -rf"], "any": ["/", "/usr", "/etc", "/var", "/home", "/root"]}},
+  {"name": "git_workflow:GIT-001", "action": "ask",
+   "match": {"kind": "substring", "all": ["git push", "--force"]}},
+  {"name": "git_workflow:GIT-002", "action": "ask",
+   "match": {"kind": "substring", "all": ["git commit"]}}
+ ]
+}
