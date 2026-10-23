@@ -2,7 +2,7 @@
 
 Read-only, local, nothing sent, no command text printed.
 
-`datapce-scan` counts what a coding agent ran, from the agent logs already on your disk. It also replays public block lists over your past commands and counts what each list would have denied. Nothing installs into the agent. The tool does not block, change or send anything.
+`datapce-scan` counts what a coding agent ran, from the agent logs already on your disk. It also replays public block lists over your past commands and counts what each list would have denied. Four more commands check allow rules, secret-file reads and hook runs. Nothing installs into the agent. The tool does not block, change or send anything.
 
 Home: https://github.com/jurikern/datapce-scan (mirror: https://codeberg.org/datapce/datapce-scan)
 
@@ -24,10 +24,11 @@ Python 3.9 or later. No dependencies outside the Python standard library.
 | Item | Value |
 |---|---|
 | Input | Claude Code transcripts: `~/.claude/projects/*/*.jsonl`. Subagent transcripts only with `--include-subagents`. |
+| Settings | `allow-audit` and `hook-runs` also read Claude Code settings files: user, managed and project locations, or the files you give with `--settings PATH`. Read only. |
 | File access | Read only. The tool opens files in read mode and writes no file. |
 | Network | None. The source has no network module. To make sure, run `grep -rnE "import (socket|urllib|http|ssl)" src/` (no result). |
 | Output | Counts and labels only: tool names, command family (first word, public command names only), repo directory basename (or a hash with `--hash-repos`), UTC day. |
-| Never printed | Command text, full paths, e-mail addresses, secrets. A last check stops the output if it holds an e-mail address or a home-directory path. |
+| Never printed | Command text, full paths, settings file paths, hook commands, secret values, e-mail addresses. A last check stops the output if it holds an e-mail address or a home-directory path. |
 | Formats | Table (default), `--json`, `--tsv`. |
 
 ## Commands
@@ -37,6 +38,10 @@ Python 3.9 or later. No dependencies outside the Python standard library.
 | `datapce-scan` | Calls by tool, Bash command family, repo and day; sessions; active hours. A family shows by name only if it is on a public list of common commands (`src/datapce_scan/families.py`); all other names go into one "other" row. |
 | `datapce-scan replay --rules NAME` | For each rule set: denies, asks, denies per rule, denies per Bash hour, and the share of denies that are likely false. `NAME` is a packaged name, a comma list, `all`, or a path to your own rule-set JSON file. |
 | `datapce-scan rules` | The packaged rule sets, with source, licence and fetch date. |
+| `datapce-scan allow-suggest` | A narrow `permissions.allow` list from your past Bash calls, as JSON to paste by hand. Exact rules only, no `*`. Each rule shows its past calls and sessions. The share of permission-relevant calls the list covers. Past calls that the auto-mode classifier denied with no verdict, and how many the list covers. Each rule's past matches are replayed through the packaged rule sets; a rule with one deny or ask is dropped. Print only: the tool writes no settings file. Options: `--min-calls N` (default 3), `--guards NAME`. |
+| `datapce-scan allow-audit` | Your standing allow rules, replayed over past calls. For each rule: scope (user, user-local, project, project-local, managed, or file N), past matches, and flags (all commands, any subcommand, destructive program, runner, dropped in auto mode, all uses of a tool, one-off, unused). Past matches that a packaged rule set denies, with the rule ids. Rule words that are not public show as `<w>`. Options: `--settings PATH`, `--guards NAME`, `--hash-repos`. |
+| `datapce-scan secret-touch` | Past tool calls that read or wrote a secret-shaped file (`.env`, `~/.aws/credentials`, `*.pem`, ...), read a secret store, dumped the environment, or had a secret-shaped value in the input or the output. Per file: a safe path label, reads, writes, tools, sessions, first and last day. Per value kind: calls and likely placeholders. A list of credentials to rotate first. Never a value or a full path. Option: `--hash-repos`. |
+| `datapce-scan hook-runs` | Do your hooks run? Recorded hook runs per Claude Code version and per hook (a hash label, never the command). For each hook: event, in settings or not, runs, sessions, first and last day, errors, p50 and p95 duration. Flags: a configured hook with no recorded run, a hook that stopped, first-prompt misses, a version with zero hook runs, more than one run for one event. Claude Code records no silent PreToolUse or PostToolUse run. Option: `--settings PATH`. |
 
 Common options: `--projects DIR`, `--include-subagents`, `--since YYYY-MM-DD`, `--until YYYY-MM-DD`, `--json`, `--tsv`.
 
@@ -45,6 +50,8 @@ Common options: `--projects DIR`, `--include-subagents`, `--since YYYY-MM-DD`, `
 WARNING: `--show-local-families` prints every command family name. The names can include private script or tool names. Do not share that output.
 
 `datapce-scan --show-local-families` shows all family names. The output starts with a WARNING line.
+
+`datapce-scan allow-suggest --show-local-families` also suggests rules for programs that are not on the public list. The rule text can show private script names. The output holds a WARNING line.
 
 ### Show examples (off by default)
 
@@ -80,7 +87,7 @@ How the matcher reads a command: a real shell tokenizer (`shlex`) splits the com
 ## Sample output (synthetic data)
 
 ```
-datapce-scan 0.1.0 | read-only, local, nothing sent, no command text printed
+datapce-scan 0.2.0 | read-only, local, nothing sent, no command text printed
 
 Source: Claude Code transcripts, 3 files, 2026-10-20 to 2026-10-21 (UTC), subagents not included
 
@@ -107,7 +114,7 @@ Bash command families (first word)  [calls, share]
 ```
 
 ```
-datapce-scan 0.1.0 | read-only, local, nothing sent, no command text printed
+datapce-scan 0.2.0 | read-only, local, nothing sent, no command text printed
 Replay: what each rule set would have done to past Bash calls. Nothing was blocked; this is a count.
 
 Rule set: datapce-6  (6 rules; licence own work (datapce); datapce guard v0; fetched 2026-10-22)
@@ -134,6 +141,8 @@ Rule set: datapce-6  (6 rules; licence own work (datapce); datapce guard v0; fet
 7. "Temp-dir target" and "heredoc text only" mark likely false denies. They are not a full count of false denies.
 8. A command family is the basename of the first word. Names that are not on the public list are counted, but not named, unless you use `--show-local-families`.
 9. Times are UTC.
+10. `allow-suggest` counts the past calls that a rule matches. The Claude Code docs do not say that an allow rule stops a "no verdict" block when the server reviews the session.
+11. `allow-audit` and `hook-runs` read the settings files as they are now. The calls and hook runs are past.
 
 ## Development
 

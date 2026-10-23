@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "datapce-scan"
-version = "0.1.0"
+version = "0.2.0"
 description = "Read-only count of what a coding agent ran, and what public block lists would have denied, from logs already on disk."
 readme = "README.md"
 requires-python = ">=3.9"

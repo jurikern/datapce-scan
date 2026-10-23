@@ -9,7 +9,9 @@ Python 3.9+, stdlib only.
 import glob
 import json
 import os
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, Tuple
+
+from . import secretkinds
 
 DEFAULT_PROJECTS = os.path.join("~", ".claude", "projects")
 
@@ -21,6 +23,12 @@ class Call(NamedTuple):
     tool_use_id: Optional[str]
     command: Optional[str]
     cwd: Optional[str]
+    outcome: Optional[str] = None  # from the tool_result: see OUTCOMES; None = no result line
+    target: Optional[str] = None   # file path (Read, Edit, Write, NotebookEdit, Grep, Glob) or URL
+    input_kinds: Tuple[str, ...] = ()   # secret-shaped value kinds in the input (never values)
+    input_ph: Tuple[str, ...] = ()      # of these, kinds that look like placeholders only
+    output_kinds: Tuple[str, ...] = ()  # secret-shaped value kinds in the tool result
+    output_ph: Tuple[str, ...] = ()
 
 
 class ReadResult(NamedTuple):
@@ -29,6 +37,53 @@ class ReadResult(NamedTuple):
     bad_lines: int
     duplicates: int
     include_subagents: bool
+
+
+_TARGET_KEYS = {"Read": ("file_path",), "Edit": ("file_path",), "Write": ("file_path",),
+                "MultiEdit": ("file_path",), "NotebookEdit": ("notebook_path",),
+                "Grep": ("path",), "Glob": ("path",), "WebFetch": ("url",)}
+OUTCOMES = ("ok", "error", "classifier-no-verdict", "classifier-denied", "safety-check-denied",
+            "rule-denied", "user-rejected")
+_NO_VERDICT = ("cannot determine the safety", "no safety verdict", "returned no verdict")
+
+
+def outcome_of(text: str, is_error: bool) -> str:
+    """Label a tool result. Only fixed phrases of Claude Code messages are used."""
+    if not is_error:
+        return "ok"
+    t = text[:600]
+    if any(p in t for p in _NO_VERDICT):
+        return "classifier-no-verdict"
+    if "denied by the Claude Code auto mode classifier" in t:
+        return "classifier-denied"
+    if "denied by a built-in Claude Code safety" in t:
+        return "safety-check-denied"
+    if "doesn't want to proceed" in t:
+        return "user-rejected"
+    if "Permission to use" in t and "has been denied" in t:
+        return "rule-denied"
+    return "error"
+
+
+_INPUT_KEYS = ("command", "content", "new_string", "new_source")
+
+
+def _input_text(inp: dict) -> str:
+    parts = [inp[k] for k in _INPUT_KEYS if isinstance(inp.get(k), str)]
+    edits = inp.get("edits")
+    if isinstance(edits, list):
+        parts += [e["new_string"] for e in edits
+                  if isinstance(e, dict) and isinstance(e.get("new_string"), str)]
+    return "\n".join(parts)
+
+
+def _result_text(content) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return " ".join(x.get("text", "") for x in content
+                        if isinstance(x, dict) and isinstance(x.get("text"), str))
+    return ""
 
 
 def _files(root: str, include_subagents: bool) -> List[str]:
@@ -48,6 +103,7 @@ def read_claude_code(root: Optional[str] = None, include_subagents: bool = False
     files = _files(root, include_subagents)
     calls: List[Call] = []
     seen = set()
+    results = {}
     bad = dup = 0
     for path in files:
         with open(path, "r", encoding="utf-8", errors="replace") as fh:
@@ -61,6 +117,9 @@ def read_claude_code(root: Optional[str] = None, include_subagents: bool = False
                     continue
                 if not isinstance(o, dict):
                     bad += 1
+                    continue
+                if o.get("type") == "user":
+                    _read_results(o, results)
                     continue
                 if o.get("type") != "assistant":
                     continue
@@ -87,8 +146,30 @@ def read_claude_code(root: Optional[str] = None, include_subagents: bool = False
                     inp = b.get("input") if isinstance(b.get("input"), dict) else {}
                     cmd = inp.get("command") if name == "Bash" else None
                     cwd = o.get("cwd") if isinstance(o.get("cwd"), str) else None
+                    tgt = None
+                    for key in _TARGET_KEYS.get(name, ()):
+                        if isinstance(inp.get(key), str):
+                            tgt = inp[key]
+                            break
+                    ik, iph = secretkinds.summarize(_input_text(inp))
                     calls.append(Call(ts, o.get("sessionId") if isinstance(o.get("sessionId"), str)
                                       else None, name, tid, cmd if isinstance(cmd, str) else None,
-                                      cwd))
+                                      cwd, None, tgt, ik, iph))
+    calls = [c._replace(outcome=results[c.tool_use_id][0], output_kinds=results[c.tool_use_id][1],
+                        output_ph=results[c.tool_use_id][2])
+             if c.tool_use_id in results else c for c in calls]
     calls.sort(key=lambda c: (c.ts, c.tool_use_id or ""))
     return ReadResult(calls, len(files), bad, dup, include_subagents)
+
+
+def _read_results(o: dict, results: dict) -> None:
+    msg = o.get("message")
+    content = msg.get("content") if isinstance(msg, dict) else None
+    if not isinstance(content, list):
+        return
+    for b in content:
+        if isinstance(b, dict) and b.get("type") == "tool_result" \
+                and isinstance(b.get("tool_use_id"), str):
+            t = _result_text(b.get("content"))
+            ok, ph = secretkinds.summarize(t)
+            results[b["tool_use_id"]] = (outcome_of(t, bool(b.get("is_error"))), ok, ph)

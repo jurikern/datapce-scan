@@ -3,6 +3,10 @@
   datapce-scan [options]                     what ran: counts by tool, command family, repo, day
   datapce-scan replay --rules NAME [options] what a rule set would have denied in past Bash calls
   datapce-scan rules                         the packaged rule sets, with source and licence
+  datapce-scan allow-suggest [options]       a narrow permissions.allow list from past calls (print only)
+  datapce-scan allow-audit [options]         standing allow rules replayed over past calls (read only)
+  datapce-scan secret-touch [options]        calls that read or printed secret-shaped files or values
+  datapce-scan hook-runs [options]           recorded hook runs per event, version and hook; hooks that never ran
 
 Python 3.9+, stdlib only.
 """
@@ -11,9 +15,9 @@ import os
 import sys
 from typing import List, Optional
 
-from . import __version__, privacy, report, rules, sources
+from . import __version__, allowaudit, allowsuggest, hookruns, privacy, report, rules, secrettouch, sources
 
-COMMANDS = ("summary", "replay", "rules")
+COMMANDS = ("summary", "replay", "rules", "allow-suggest", "allow-audit", "secret-touch", "hook-runs")
 
 
 def _common(p: argparse.ArgumentParser) -> None:
@@ -45,6 +49,29 @@ def _parser(cmd: str) -> argparse.ArgumentParser:
         p.add_argument("--show-local-families", action="store_true",
                        help="print every command family name, also names that are not on the "
                             "public list (off by default; can show private script names)")
+    elif cmd == "allow-suggest":
+        p.add_argument("--min-calls", type=int, default=3,
+                       help="past calls a rule needs (default 3)")
+        p.add_argument("--guards", default="all",
+                       help="guard rule sets for the proof: name, comma list or 'all' (default)")
+        p.add_argument("--show-local-families", action="store_true",
+                       help="also suggest rules for programs that are not on the public list "
+                            "(off by default; can show private script names)")
+    elif cmd == "secret-touch":
+        p.add_argument("--hash-repos", action="store_true",
+                       help="show repos as short hashes, not directory basenames")
+    elif cmd == "hook-runs":
+        p.add_argument("--settings", action="append", metavar="PATH",
+                       help="a settings JSON file to read (repeat for more); default: the user, managed "
+                            "and project settings locations, read-only")
+    elif cmd == "allow-audit":
+        p.add_argument("--settings", action="append", metavar="PATH",
+                       help="a settings JSON file to read (repeat for more); default: the user, "
+                            "managed and project settings locations, read-only")
+        p.add_argument("--guards", default="all",
+                       help="guard rule sets for destructive matches (default all)")
+        p.add_argument("--hash-repos", action="store_true",
+                       help="show project scopes as short hashes, not directory basenames")
     else:
         p.add_argument("--rules", required=True,
                        help="rule set name, comma list, 'all', or a path to a rule-set JSON file")
@@ -98,7 +125,33 @@ def main(argv: Optional[List[str]] = None) -> int:
                       "or file", file=sys.stderr)
                 return 2
 
+    if cmd == "hook-runs":
+        found = [("file %d" % (k + 1), p) for k, p in enumerate(a.settings)] if a.settings else None
+        hr = hookruns.scan(a.projects, found, a.include_subagents, a.since, a.until, home)
+        return _emit(hookruns.render(hr, report.header(), a.fmt), home)
+
     res = sources.read_claude_code(a.projects, a.include_subagents, a.since, a.until)
+
+    if cmd == "secret-touch":
+        st = secrettouch.scan(res, home, a.hash_repos)
+        return _emit(secrettouch.render(st, report.header(), a.fmt), home)
+
+    if cmd in ("allow-suggest", "allow-audit"):
+        names = rules.available() if a.guards == "all" else [x for x in a.guards.split(",") if x]
+        try:
+            guards = [rules.load(n) for n in names]
+        except rules.RulesetError as e:
+            print("datapce-scan: %s" % e, file=sys.stderr)
+            return 2
+        if cmd == "allow-audit":
+            found = ([("file %d" % (k + 1), p) for k, p in enumerate(a.settings)] if a.settings
+                     else allowaudit.default_settings(res, home))
+            files = allowaudit.load_settings(found, home, a.hash_repos)
+            au = allowaudit.audit(res, files, guards, home)
+            return _emit(allowaudit.render(au, report.header(), a.fmt), home)
+        s = allowsuggest.suggest(res, guards, home, min_calls=a.min_calls,
+                                 local_names=a.show_local_families)
+        return _emit(allowsuggest.render(s, report.header(), a.fmt), home)
 
     if cmd == "summary":
         s = report.summarize(res, home, hash_repos=a.hash_repos, top=a.top,

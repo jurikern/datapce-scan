@@ -65,3 +65,18 @@ def make_fixture(root):
         ], sidechain=True),
     ], sub="agent-1")
     return root
+
+
+def result_line(ts, session, results):
+    """A user line with tool_result blocks: results = [(tool_use_id, text, is_error)]."""
+    content = [{"type": "tool_result", "tool_use_id": tid, "content": text, "is_error": err}
+               for tid, text, err in results]
+    return {"type": "user", "timestamp": ts, "sessionId": session,
+            "message": {"role": "user", "content": content}}
+
+
+NO_VERDICT = ("claude-x is temporarily unavailable (rate-limited), so auto mode cannot determine "
+              "the safety of Bash right now. Wait a moment and then try this action again.")
+CLASSIFIER_DENY = ("Permission for this action was denied by the Claude Code auto mode classifier. "
+                   "Reason: [Scope].")
+USER_REJECT = "The user doesn't want to proceed with this tool use. The tool use was rejected."
