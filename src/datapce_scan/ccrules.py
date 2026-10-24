@@ -282,13 +282,19 @@ def subcommands(text: str, _depth: int = 0) -> Optional[List[Sub]]:
     return out
 
 
+def no_op_redirect(op: str, target: str) -> bool:
+    """A redirect that touches no file: the target is /dev/null, or the op is an fd copy or
+    close (>& or <&; the parser drops the N of N>& and N<&) with an all-digit or - target, as
+    in >&2, 2>&1, >&-, <&3. Bash writes a file for every other output redirect: >&file and
+    &>file write stdout and stderr to file; > 5 and > - write files named 5 and -."""
+    if target == "/dev/null":
+        return True
+    return op in (">&", "<&") and (target == "-" or (target.isascii() and target.isdigit()))
+
+
 def writes_file(sub: Sub) -> bool:
-    """An output redirect to a file (not /dev/null, not an fd form such as 2>&1)."""
-    for op, target in sub.redirects:
-        if ">" in op and not op.endswith("&") and target != "/dev/null" \
-                and not target.isdigit() and target != "-":
-            return True
-    return False
+    """An output redirect to a file (see no_op_redirect)."""
+    return any(">" in op and not no_op_redirect(op, target) for op, target in sub.redirects)
 
 
 def writes_special(sub: Sub) -> bool:

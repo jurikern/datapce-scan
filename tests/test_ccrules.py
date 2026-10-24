@@ -285,3 +285,41 @@ class LinearMatchTests(unittest.TestCase):
             path = "/" + "".join(rnd.choice("ab/") for _ in range(rnd.randint(0, 8)))
             self.assertEqual(ccrules.path_matches("/" + pat, path), _oracle_glob(pat, path),
                              (pat, path))
+
+
+class RedirectRuleTests(unittest.TestCase):
+    """a redirect is a no-op only for /dev/null, or for an fd copy or close
+    (>& or <& with an all-digit or - target). Bash writes a file for every other output
+    redirect: >&file and &>file write stdout and stderr; > 5 and > - write files 5 and -."""
+
+    def test_parser_forms(self):
+        for cmd, want in (("x >&file", (">&", "file")), ("x &>file", ("&>", "file")),
+                          ("x >&2", (">&", "2")), ("x 2>&1", (">&", "1")),
+                          ("x > 5", (">", "5")), ("x >|file", (">|", "file")),
+                          ("x &>>file", ("&>>", "file")), ("x >&-", (">&", "-")),
+                          ("x <&3", ("<&", "3")), ("x > -", (">", "-"))):
+            self.assertEqual(ccrules.subcommands(cmd)[0].redirects, (want,), cmd)
+
+    def test_no_op_redirect(self):
+        for op, target in ((">&", "2"), (">&", "1"), (">&", "-"), ("<&", "3"), ("<&", "-"),
+                           ("<&", "10"), (">", "/dev/null"), (">>", "/dev/null"),
+                           ("&>", "/dev/null"), ("&>>", "/dev/null"), (">&", "/dev/null")):
+            self.assertTrue(ccrules.no_op_redirect(op, target), (op, target))
+        for op, target in ((">&", "file"), (">&", "~/.bashrc"), ("&>", "file"), ("&>", "2"),
+                           ("&>", "-"), ("&>>", "file"), (">", "5"), (">>", "5"), (">", "-"),
+                           (">|", "file"), (">|", "5"), (">", "out.txt"), (">&", "²"),
+                           (">&", "")):
+            self.assertFalse(ccrules.no_op_redirect(op, target), (op, target))
+
+    def test_writes_file(self):
+        for cmd in ("uptime >& ~/.bashrc", "launchctl list >&out.txt", "echo x &>f",
+                    "echo x &>>f", "echo x > 5", "echo x >> 5", "echo x > -", "echo x >|f",
+                    "echo x &>2", "echo x &> -", "echo x >& out 2>&1", "echo x 2>&1 >&out"):
+            sub = ccrules.subcommands(cmd)[0]
+            self.assertTrue(ccrules.writes_file(sub), cmd)
+            self.assertFalse(ccrules.sub_read_only(sub), cmd)
+        for cmd in ("ls >&2", "ls 2>&1", "ls >&-", "ls 2>&-", "cat <&3", "ls >& 2",
+                    "ls > /dev/null", "ls &>/dev/null", "ls >/dev/null 2>&1", "cat < in.txt"):
+            sub = ccrules.subcommands(cmd)[0]
+            self.assertFalse(ccrules.writes_file(sub), cmd)
+            self.assertTrue(ccrules.sub_read_only(sub), cmd)

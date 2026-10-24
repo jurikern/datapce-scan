@@ -490,6 +490,58 @@ class OutputRedirectTests(unittest.TestCase):
         self.assertEqual((r["calls"], r["destructive"]), (1, 1))
 
 
+class FdRedirectTests(unittest.TestCase):
+    """>&file, &>file, > <digits> and > - write a file, so a call with one is not
+    covered and the guard replay keeps the redirect. Only /dev/null and fd copies or closes
+    (>&2, 2>&1, >&-, <&3) are left out."""
+
+    def test_repro_a(self):
+        cmds = ["uptime >& ~/.bashrc"] * 3 + ["launchctl list >&out.txt"] * 3 + ["id -u"] * 3
+        with tempfile.TemporaryDirectory() as d:
+            write_project(d, "-Users-someone-src-alpha", "f1", [
+                assistant_line("2026-10-22T10:00:00Z", "f1", CWD,
+                               [bash("f%d" % k, c) for k, c in enumerate(cmds)])])
+            with mock.patch.dict(os.environ, {"HOME": HOME}):
+                s = allowsuggest.suggest(sources.read_claude_code(d), [], HOME)
+        self.assertEqual([r["rule"] for r in s["rules"]], ["Bash(id -u)"])
+        self.assertEqual(s["relevant_calls"], 9)
+        self.assertEqual(s["covered_calls"], 3)
+        self.assertEqual(s["rejected"][allowsuggest.R_REDIRECT], 6)
+
+    def test_no_bash_rule(self):
+        from datapce_scan import ccrules
+        for cmd in ("uptime >& ~/.bashrc", "uname -a >&out.txt", "uname -a &>f",
+                    "uname -a &>>f", "uname -a > 5", "uname -a > -", "uname -a >|f"):
+            sub = ccrules.subcommands(cmd)[0]
+            self.assertEqual(allowsuggest._no_bash_rule(sub), allowsuggest.R_REDIRECT, cmd)
+        for cmd in ("uname -a >&2", "uname -a 2>&1", "uname -a >&-", "uname -a <&3"):
+            self.assertIsNone(allowsuggest._no_bash_rule(ccrules.subcommands(cmd)[0]), cmd)
+
+    def test_replay_text(self):
+        from datapce_scan import ccrules
+        for cmd, want in (("uptime >& ~/.bashrc", "uptime >& ~/.bashrc"),
+                          ("ls >&out.txt", "ls >& out.txt"), ("ls &>f", "ls &> f"),
+                          ("ls &>>f", "ls &>> f"), ("ls > 5", "ls > 5"), ("ls > -", "ls > -"),
+                          ("ls >|f", "ls >| f"), ("ls &>2", "ls &> 2"),
+                          ("ls >&2", "ls"), ("ls 2>&1", "ls"), ("ls >&-", "ls"),
+                          ("cat <&3", "cat"), ("ls &>/dev/null", "ls")):
+            self.assertEqual(allowsuggest.replay_text(ccrules.subcommands(cmd)[0]), want, cmd)
+
+    def test_guard_replay_keeps_fd_form_redirect(self):
+        g = _RcGuard()
+        cmds = ["uname -a"] * 3 + ["uname -a >& ~/.bashrc"]
+        with tempfile.TemporaryDirectory() as d:
+            write_project(d, "-Users-someone-src-alpha", "f2", [
+                assistant_line("2026-10-22T10:00:00Z", "f2", CWD,
+                               [bash("f%d" % k, c) for k, c in enumerate(cmds)])])
+            with mock.patch.dict(os.environ, {"HOME": HOME}):
+                s = allowsuggest.suggest(sources.read_claude_code(d), [g], HOME)
+        self.assertIn("uname -a >& ~/.bashrc", g.seen)
+        self.assertEqual(s["relevant_calls"], 4)
+        self.assertEqual(s["covered_calls"], 3)
+        self.assertEqual(s["rejected"][allowsuggest.R_REDIRECT], 1)
+
+
 class _DenyGuard:
     """A fake guard rule set: denies every jq command, allows the rest."""
     name = "fake-deny"

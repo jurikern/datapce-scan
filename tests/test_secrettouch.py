@@ -196,6 +196,48 @@ class HomeVarAndRedirectTests(unittest.TestCase):
             self.assertEqual(s["totals"]["write_file_calls"], 1)
 
 
+class FdRedirectTests(unittest.TestCase):
+    """>&file and &>file write the file; > <digits> and > - write files named so;
+    fd copies and closes (2>&1, >&2, >&-, <&3) and /dev/null touch no file."""
+
+    def test_repro_c(self):
+        with tempfile.TemporaryDirectory() as d:
+            write_project(d, "-Users-someone-src-alpha", "w1", [
+                assistant_line("2026-10-22T10:00:00Z", "w1", CWD, [
+                    bash("w1", "echo x >& ~/.aws/credentials")])])
+            s = secrettouch.scan(sources.read_claude_code(d), HOME)
+        self.assertEqual(s["totals"]["write_file_calls"], 1)
+        self.assertEqual({r["path"]: r["writes"] for r in s["files"]}, {"~/.aws/credentials": 1})
+
+    def test_redirect_paths(self):
+        f = secrettouch._redirect_paths
+        for cmd, want in (("echo x >& ~/.aws/credentials", [(HOME + "/.aws/credentials", "writes")]),
+                          ("echo x >&.env", [(CWD + "/.env", "writes")]),
+                          ("echo x &>.env", [(CWD + "/.env", "writes")]),
+                          ("echo x &>>.env", [(CWD + "/.env", "writes")]),
+                          ("echo x >|.env", [(CWD + "/.env", "writes")]),
+                          ("echo x > 5", [(CWD + "/5", "writes")]),
+                          ("echo x > -", []),  # a file named - : _resolve skips - words
+                          ("echo x >&2", []), ("echo x 2>&1", []), ("echo x >&-", []),
+                          ("cat <&3", []), ("echo x > /dev/null 2>&1", []),
+                          ("sort < .env 2>&1", [(CWD + "/.env", "reads")]),
+                          ("cat <<< x", [])):
+            self.assertEqual(f(cmd, CWD, HOME), want, cmd)
+
+    def test_fd_forms_with_secret_files(self):
+        cmds = ["echo x >& ~/.aws/credentials", "echo x &> .env", "echo x >&.env",
+                "echo x 2>&1 >&2", "sort < .env 2>&1"]
+        with tempfile.TemporaryDirectory() as d:
+            write_project(d, "-Users-someone-src-alpha", "w2", [
+                assistant_line("2026-10-22T10:00:00Z", "w2", CWD,
+                               [bash("w%d" % k, c) for k, c in enumerate(cmds)])])
+            s = secrettouch.scan(sources.read_claude_code(d), HOME)
+        f = {r["path"]: (r["reads"], r["writes"]) for r in s["files"]}
+        self.assertEqual(f, {"~/.aws/credentials": (0, 1), ".env (repo alpha)": (1, 2)})
+        self.assertEqual(s["totals"]["write_file_calls"], 3)
+        self.assertEqual(s["totals"]["read_file_calls"], 1)
+
+
 class PatternArgTests(unittest.TestCase):
     """Review finding 6: the pattern or program argument of grep, jq, sed, awk is not a file."""
 

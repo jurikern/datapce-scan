@@ -271,7 +271,8 @@ def _store_kind(argv: List[str]) -> Optional[str]:
 
 def _redirect_paths(command: str, cwd: Optional[str], home: str) -> List[Tuple[str, str]]:
     """(path, 'reads' or 'writes') for file redirects: < file reads, > >> &> file writes.
-    Here-strings, here-docs and fd forms (2>&1, <&3) are not files. cd at the top level moves
+    Here-strings, here-docs, /dev/null and fd copies or closes (2>&1, <&3) are not files
+    (ccrules.no_op_redirect); >&file is a write. cd at the top level moves
     the directory that later relative targets resolve against."""
     subs = ccrules.subcommands(command)
     out: List[Tuple[str, str]] = []
@@ -284,7 +285,7 @@ def _redirect_paths(command: str, cwd: Optional[str], home: str) -> List[Tuple[s
             nxt = _resolve(args[0], cur, home) if args else None
             cur = posixpath.normpath(nxt) if nxt else cur
         for op, target in sub.redirects:
-            if op in ("<<<", "<<") or op.endswith("&") or target.isdigit() or target == "-":
+            if op in ("<<<", "<<") or ccrules.no_op_redirect(op, target):
                 continue
             p = _resolve(target, cur, home)
             if p:

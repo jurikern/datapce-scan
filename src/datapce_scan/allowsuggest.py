@@ -396,13 +396,8 @@ def replay_text(sub: "ccrules.Sub") -> str:
     round 2, I5: `cut x > ~/.bashrc` is replayed with its redirect)."""
     words = [shlex.quote(a) for a in sub.argv]
     words += ["%s %s" % (op, _quote_target(t)) for op, t in sub.redirects
-              if not _no_op_redirect(op, t)]
+              if not ccrules.no_op_redirect(op, t)]
     return " ".join(words)
-
-
-def _no_op_redirect(op: str, target: str) -> bool:
-    """/dev/null and fd copies (2>&1, <&3, >&-) touch no file."""
-    return target == "/dev/null" or op.endswith("&") or target.isdigit() or target == "-"
 
 
 def _past_matches(cand_calls, all_need) -> Dict[str, List[Tuple[str, Optional[str]]]]:
