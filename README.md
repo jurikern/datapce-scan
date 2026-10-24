@@ -9,13 +9,11 @@ Home: https://github.com/jurikern/datapce-scan (mirror: https://codeberg.org/dat
 ## Quick start
 
 ```
-uvx --from git+https://github.com/jurikern/datapce-scan.git datapce-scan
-uvx --from git+https://github.com/jurikern/datapce-scan.git datapce-scan replay --rules all
+uvx datapce-scan
+uvx datapce-scan replay --rules all
 ```
 
-The package is not on PyPI yet. Do not install a `datapce-scan` package from PyPI until this README says it is published.
-
-From a local checkout: `uvx --from . datapce-scan`.
+The package is on PyPI as `datapce-scan` (`pipx run datapce-scan` also works). From the repository: `uvx --from git+https://github.com/jurikern/datapce-scan.git datapce-scan`. From a local checkout: `uvx --from . datapce-scan`.
 
 Python 3.9 or later. No dependencies outside the Python standard library.
 
