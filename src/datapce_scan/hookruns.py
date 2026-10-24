@@ -12,14 +12,13 @@ as text. Settings files print by scope only, never by path.
 Python 3.9+, stdlib only.
 """
 import collections
-import glob
 import hashlib
 import json
 import os
 import re
 from typing import Dict, List, Optional, Tuple
 
-from . import privacy, report
+from . import privacy, report, sources
 
 MANAGED = ("/Library/Application Support/ClaudeCode/managed-settings.json",
            "/etc/claude-code/managed-settings.json")
@@ -118,10 +117,7 @@ def load_hooks(found: List[Tuple[str, str]]):
 # ---------------------------------------------------------------- transcripts
 
 def _files(root: str, include_subagents: bool) -> List[str]:
-    fs = glob.glob(os.path.join(root, "*", "*.jsonl"))
-    if include_subagents:
-        fs += glob.glob(os.path.join(root, "*", "*", "subagents", "*.jsonl"))
-    return sorted(fs)
+    return sources._files(root, include_subagents)
 
 
 # Text that Claude Code puts in a user record but that the user did not type as a prompt.

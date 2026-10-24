@@ -228,6 +228,29 @@ class HookRunsTest(unittest.TestCase):
                                               start("2026-10-20T09:06:00Z", "s1", "2.1.290", None)])
         self.assertEqual(self._scan()["flags"]["multi_run"], [self.lab(CMD_A)])
 
+    def _workflow_file(self):
+        d = os.path.join(self.root, "-p", "s1", "subagents", "workflows", "wf_1")
+        os.makedirs(d)
+        with open(os.path.join(d, "a.jsonl"), "w") as f:
+            f.write(json.dumps(stop("2026-10-21T09:00:00Z", "s1", "2.1.290", [(CMD_B, 7)])) + "\n")
+
+    def test_workflow_subagent_files_count_with_include_subagents(self):
+        self._workflow_file()
+        r = self._scan(include_subagents=True)
+        b = {h["label"]: h for h in r["hooks"]}[self.lab(CMD_B)]
+        self.assertEqual(b["runs"], 1)
+        self.assertNotIn(self.lab(CMD_B), r["flags"]["configured_no_run"])
+
+    def test_default_reads_top_level_files_only(self):
+        self._workflow_file()
+        write_project(self.root, "-p", "s1", [stop("2026-10-21T09:01:00Z", "s1", "2.1.290", [(CMD_B, 8)])],
+                      sub="agent-a1")
+        self.assertEqual(hookruns._files(self.root, False),
+                         [os.path.join(self.root, "-p", "s1.jsonl"), os.path.join(self.root, "-p", "s2.jsonl")])
+        r = self._scan()
+        self.assertEqual({h["label"]: h for h in r["hooks"]}[self.lab(CMD_B)]["runs"], 0)
+        self.assertEqual(r["flags"]["configured_no_run"], [self.lab(CMD_B)])
+
     def test_bad_settings_file_is_skipped(self):
         bad = os.path.join(self.tmp.name, "bad.json")
         with open(bad, "w") as f:
