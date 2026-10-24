@@ -280,3 +280,148 @@ class GrepRgOptionTests(unittest.TestCase):
                             (["grep", "-e", ".env", "a"], ["a"]), (["rg", "-r", ".env", "x", "a"], ["a"]),
                             (["grep", "-rA", "2", ".env", "a"], ["a"])):
             self.assertEqual(secrettouch._file_args(argv), files, argv)
+
+
+def _scan_cmds(cmds, home=HOME, cwd=CWD):
+    with tempfile.TemporaryDirectory() as d:
+        write_project(d, "-Users-someone-src-alpha", "x1", [
+            assistant_line("2026-10-22T10:00:00Z", "x1", cwd,
+                           [bash("x%d" % k, c) for k, c in enumerate(cmds)])])
+        return secrettouch.scan(sources.read_claude_code(d), home)
+
+
+class WriteProgramTests(unittest.TestCase):
+    """tee F, the destination of cp and mv, and sed -i F write the file; an assignment-only
+    command keeps its redirect; one call can read and write the same file."""
+
+    def files(self, cmds):
+        s = _scan_cmds(cmds)
+        return {r["path"]: (r["reads"], r["writes"]) for r in s["files"]}, s["totals"]
+
+    def test_tee_cp_sed_write(self):
+        for cmd in ("echo K=1 | tee .env", "echo K=1 | tee -a .env", "cp src.txt .env",
+                    "cp -f src.txt .env", "mv new.txt .env", "X=1 > .env", "A=1 B=2 >> .env"):
+            f, t = self.files([cmd])
+            want = ".env (repo alpha)"
+            self.assertEqual(f, {want: (0, 1)}, cmd)
+            self.assertEqual((t["read_file_calls"], t["write_file_calls"]), (0, 1), cmd)
+
+    def test_sed_in_place_reads_and_writes(self):
+        # sed -i reads the file and writes it back: a read and a write (never-loosen)
+        for cmd in ("sed -i s/a/b/ .env", "sed -i.bak s/a/b/ .env", "sed -i -e s/a/b/ .env",
+                    "sed --in-place s/a/b/ .env", "sed -i '' s/a/b/ .env",
+                    "sed -Ei s/a/b/ .env", "sed -i -f prog.sed .env"):
+            f, t = self.files([cmd])
+            self.assertEqual(f, {".env (repo alpha)": (1, 1)}, cmd)
+            self.assertEqual((t["read_file_calls"], t["write_file_calls"]), (1, 1), cmd)
+        f, t = self.files(["sed -i s/a/b/ .env ~/.aws/credentials"])
+        self.assertEqual(f, {".env (repo alpha)": (1, 1), "~/.aws/credentials": (1, 1)})
+        self.assertEqual((t["read_file_calls"], t["write_file_calls"]), (1, 1))
+        # a program file given with -f is read, not written
+        f, _ = self.files(["sed -i -f .env x.txt"])
+        self.assertEqual(f, {".env (repo alpha)": (1, 0)})
+
+    def test_cp_reads_source_and_writes_into_directory(self):
+        f, _ = self.files(["cp .env backup.txt"])
+        self.assertEqual(f, {".env (repo alpha)": (1, 0)})
+        f, _ = self.files(["cp ~/.aws/credentials /tmp/bk/"])
+        self.assertEqual(f, {"~/.aws/credentials": (1, 0), "credentials (other dir)": (0, 1)})
+        f, _ = self.files(["cp -t /tmp/bk src.txt .env.local"])  # -t names a directory
+        self.assertEqual(f, {".env.local (repo alpha)": (1, 0),
+                             ".env.local (other dir)": (0, 1)})
+        f, _ = self.files(["cp a.txt .env /tmp/bk"])  # two sources: the target is a directory
+        self.assertEqual(f, {".env (repo alpha)": (1, 0), ".env (other dir)": (0, 1)})
+        f, _ = self.files(["sed -n 1p .env", "sed -e s/a/b/ .env"])
+        self.assertEqual(f, {".env (repo alpha)": (2, 0)})
+
+    def test_one_call_reads_and_writes(self):
+        f, t = self.files(["grep -q K .env || echo K=1 >> .env"])
+        self.assertEqual(f, {".env (repo alpha)": (1, 1)})
+        self.assertEqual((t["read_file_calls"], t["write_file_calls"]), (1, 1))
+
+
+class PrivateNameLabelTests(unittest.TestCase):
+    """A private file name under ~/.ssh or ~/.gnupg prints as an index id, never as a hash of
+    the name (a short hash of a name can be found by a dictionary search)."""
+
+    def test_index_ids_no_hash(self):
+        import hashlib
+        names = ("acme_deploy_key", "github-work")
+        s = _scan_cmds(["cat ~/.ssh/acme_deploy_key", "cat ~/.ssh/github-work",
+                        "cat ~/.ssh/acme_deploy_key",
+                        "cat ~/.gnupg/private-keys-v1.d/ACMEKEYGRIP"])
+        out = json.dumps(s)
+        for n in names + ("ACMEKEYGRIP",):
+            self.assertNotIn(n, out)
+            self.assertNotIn(hashlib.sha256(n.encode()).hexdigest()[:6], out)
+        f = {r["path"]: r["reads"] for r in s["files"]}
+        self.assertEqual(f, {"~/.ssh/key file #1": 2, "~/.ssh/key file #2": 1,
+                             "~/.gnupg/.../secret-shaped file #3": 1})
+
+
+class InputPlaceholderPerKindTests(unittest.TestCase):
+    """The placeholder-like count of input values is given per kind, as for output."""
+
+    def test_per_kind(self):
+        s = _scan_cmds(["echo key " + PLACEHOLDER, "echo key " + OPENAI,
+                        "echo " + AWS_ID])
+        v = {k["kind"]: k for k in s["values"]}
+        self.assertEqual(v["sk- API key"]["input_calls"], 2)
+        self.assertEqual(v["sk- API key"]["input_placeholder_calls"], 1)
+        self.assertEqual(v["AWS access key id"]["input_placeholder_calls"], 0)
+        self.assertEqual(s["totals"]["input_placeholder_calls"], 1)
+        text = secrettouch.render(s, "h")
+        self.assertIn("input placeholder-like", text)
+        tsv = secrettouch.render(s, "h", "tsv")
+        # new column at the end: the first fields keep their old places
+        self.assertIn("value\tsk- API key\t2\t0\t0\t1", tsv)
+
+
+class AmbiguousInputRedirectTests(unittest.TestCase):
+    """cat <&.env opens no file (bash: ambiguous redirect): not a read."""
+
+    def test_fd_input_word_is_not_a_read(self):
+        self.assertEqual(secrettouch._redirect_paths("cat <&.env", CWD, HOME), [])
+        self.assertEqual(secrettouch._redirect_paths("cat 0<&.env", CWD, HOME), [])
+        s = _scan_cmds(["cat <&.env", "cat <&~/.aws/credentials"])
+        self.assertEqual(s["totals"]["read_file_calls"], 0)
+        self.assertEqual(s["files"], [])
+        s = _scan_cmds(["echo x >&.env", "sort < .env"])
+        self.assertEqual({r["path"]: (r["reads"], r["writes"]) for r in s["files"]},
+                         {".env (repo alpha)": (1, 1)})
+
+
+class CpSuffixOptionTests(unittest.TestCase):
+    """cp and mv -S SUFFIX (also in a short group such as -fS, -bS, or attached -S.bak, and
+    --suffix=SUF) take a value: the suffix is not a file argument. -t in a group takes the
+    target directory."""
+
+    def files(self, cmds):
+        s = _scan_cmds(cmds)
+        return {r["path"]: (r["reads"], r["writes"]) for r in s["files"]}
+
+    def test_suffix_groups(self):
+        for cmd in ("cp -fS .bak x .env", "cp -bS .bak x .env", "cp -S .bak x .env",
+                    "cp -S.bak x .env", "cp -bS.bak x .env", "cp --suffix=.bak x .env",
+                    "cp --suffix .bak x .env", "cp -b -S .bak x .env", "mv -fS .bak x .env"):
+            self.assertEqual(self.files([cmd]), {".env (repo alpha)": (0, 1)}, cmd)
+        self.assertEqual(self.files(["cp -bS .bak x ~/.ssh/id_rsa"]), {"~/.ssh/id_rsa": (0, 1)})
+        self.assertEqual(self.files(["cp -fS .bak .env x.txt"]), {".env (repo alpha)": (1, 0)})
+
+    def test_target_in_group(self):
+        self.assertEqual(self.files(["cp -rt /tmp/bk .env"]),
+                         {".env (repo alpha)": (1, 0), ".env (other dir)": (0, 1)})
+        self.assertEqual(self.files(["cp -t/tmp/bk .env"]),
+                         {".env (repo alpha)": (1, 0), ".env (other dir)": (0, 1)})
+
+    def test_tee_has_no_value_options(self):
+        self.assertEqual(self.files(["echo x | tee -t .env"]), {".env (repo alpha)": (0, 1)})
+        self.assertEqual(self.files(["echo x | tee --target-directory .env"]),
+                         {".env (repo alpha)": (0, 1)})
+
+    def test_no_touch_lost_for_directory_targets_and_option_values(self):
+        # a target directory with a secret-shaped name and an option value stay counted
+        self.assertEqual(self.files(["cp x y ~/.aws/credentials"]), {"~/.aws/credentials": (0, 1)})
+        self.assertEqual(self.files(["cp -t ~/.aws/credentials x"]), {"~/.aws/credentials": (0, 1)})
+        self.assertEqual(self.files(["cp -S ~/.aws/credentials x y"]),
+                         {"~/.aws/credentials": (1, 0)})

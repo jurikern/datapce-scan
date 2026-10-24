@@ -7,6 +7,7 @@ Each assistant line holds tool_use blocks: {"type": "tool_use", "id", "name", "i
 Python 3.9+, stdlib only.
 """
 import glob
+import io
 import json
 import os
 from typing import List, NamedTuple, Optional, Tuple
@@ -90,11 +91,21 @@ def _files(root: str, include_subagents: bool) -> List[str]:
     if not os.path.isdir(root):
         return []
     if not include_subagents:
-        return sorted(glob.glob(os.path.join(glob.escape(root), "*", "*.jsonl")))
-    out = []
-    for dp, _, fs in os.walk(root):
-        out.extend(os.path.join(dp, f) for f in fs if f.endswith(".jsonl"))
-    return sorted(out)
+        out = glob.glob(os.path.join(glob.escape(root), "*", "*.jsonl"))
+    else:
+        out = []
+        for dp, _, fs in os.walk(root):
+            out.extend(os.path.join(dp, f) for f in fs if f.endswith(".jsonl"))
+    # Regular files only: a dangling link or a directory named *.jsonl is skipped.
+    return sorted(p for p in out if os.path.isfile(p))
+
+
+def _open_or_empty(path: str):
+    """The file for reading; an empty stream if it cannot be opened (no traceback, no path printed)."""
+    try:
+        return open(path, "r", encoding="utf-8", errors="replace")
+    except OSError:
+        return io.StringIO("")
 
 
 def read_claude_code(root: Optional[str] = None, include_subagents: bool = False,
@@ -106,7 +117,7 @@ def read_claude_code(root: Optional[str] = None, include_subagents: bool = False
     results = {}
     bad = dup = 0
     for path in files:
-        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        with _open_or_empty(path) as fh:
             for line in fh:
                 if not line.strip():
                     continue

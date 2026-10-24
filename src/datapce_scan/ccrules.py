@@ -269,6 +269,9 @@ def subcommands(text: str, _depth: int = 0) -> Optional[List[Sub]]:
         for w in list(assigns.values()) + words:
             nested.extend(int(k) for k in shellparse._PLACEHOLDER_RE.findall(w))
         if not seg:
+            if red or any(k in SPECIAL_VARS for k in assigns):
+                # assignments only (X=1 > f, PATH=/x): keep the redirect and the assignments
+                out.append(Sub([], assigns, _depth, [], red))
             continue
         argv = _cc_unwrap(words)
         raw = [r for _, r in seg][len(words) - len(argv):]
@@ -292,9 +295,23 @@ def no_op_redirect(op: str, target: str) -> bool:
     return op in (">&", "<&") and (target == "-" or (target.isascii() and target.isdigit()))
 
 
+_STD_DEVICE = re.compile(r"^/dev/(?:stdin|stdout|stderr|fd/[0-9]+)$")
+
+
+def opens_file(op: str, target: str) -> bool:
+    """A redirect that opens a file. Not a file: here-docs and here-strings, no_op_redirect,
+    /dev/stdin, /dev/stdout, /dev/stderr and /dev/fd/N (bash maps them to file descriptors),
+    and <&word (a word that is not digits or - is an error in bash: ambiguous redirect)."""
+    if op in ("<<", "<<<") or no_op_redirect(op, target):
+        return False
+    if op == "<&":
+        return False
+    return not _STD_DEVICE.match(target)
+
+
 def writes_file(sub: Sub) -> bool:
-    """An output redirect to a file (see no_op_redirect)."""
-    return any(">" in op and not no_op_redirect(op, target) for op, target in sub.redirects)
+    """An output redirect to a file (see opens_file)."""
+    return any(">" in op and opens_file(op, target) for op, target in sub.redirects)
 
 
 def writes_special(sub: Sub) -> bool:

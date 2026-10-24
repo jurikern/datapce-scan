@@ -7,8 +7,8 @@ directory seen in the transcripts). Files are opened in read mode only.
 For each allow rule: past calls it matched (Bash rules match subcommands, as Claude Code does),
 past matches that a packaged guard rule set denies, and flags for broad forms. Rule text
 prints only in public shapes (families.public_mask): tool name, public program, listed
-subcommand, flag with no value, `*`. Every other word shows as <w>; a hidden rule has an index
-id, never a hash or a length. Settings file paths are never printed.
+subcommand, one-letter or listed flag, `*`. Every other word shows as <w>; a hidden rule has
+an index id, never a hash or a length. Settings file paths are never printed.
 
 Python 3.9+, stdlib only.
 """
@@ -17,7 +17,7 @@ import json
 import os
 from typing import Dict, List, Optional, Tuple
 
-from . import allowsuggest as sug, ccrules, families, report, rules as rules_mod
+from . import allowsuggest as sug, ccrules, families, report, rules as rules_mod, secrettouch
 from .sources import ReadResult
 
 F_ALL = "all commands"
@@ -113,6 +113,39 @@ def load_settings(found: List[Tuple[str, str]], home: str = "",
     return files
 
 
+# Programs that write a file with any arguments (cp target, tee files).
+WRITERS = {"cp", "tee", "install"}
+# Programs that can overwrite or run code with some arguments (sed -i, awk system() or
+# print > file, sort -o, tar -x): destructive when the rule has a wildcard.
+WRITERS_WITH_ARGS = {"sed", "gsed", "awk", "gawk", "mawk", "nawk", "sort", "tar", "perl"}
+# (program, subcommand) pairs with a destructive form below them (git worktree remove,
+# git branch -D, git stash drop, aws s3 rm, docker compose down -v, gh pr merge ...).
+DESTRUCTIVE_UNDER = {("git", "worktree"), ("git", "branch"), ("git", "stash"), ("git", "tag"),
+                     ("git", "remote"), ("git", "submodule"), ("git", "notes"), ("aws", "s3"),
+                     ("docker", "compose"), ("gh", "pr"), ("gh", "issue"), ("gh", "gist"),
+                     ("gh", "secret"), ("gh", "variable"), ("gh", "label"), ("gh", "run"),
+                     ("gh", "workflow"), ("gh", "cache"), ("kubectl", "rollout"),
+                     ("npm", "cache"), ("brew", "services")}
+# (program, subcommand) pairs with a form below them that runs a given command.
+RUNNER_UNDER = {("tmux", "new-session"), ("tmux", "new-window"), ("tmux", "split-window"),
+                ("git", "submodule")}
+
+
+def _covers_under(words: List[str]) -> bool:
+    """The rule has a wildcard in the subcommand word, or after it with only flags between:
+    it can match any form below that subcommand (git worktree*, git branch -D *)."""
+    if len(words) < 2:
+        return False
+    if "*" in words[1]:
+        return True
+    for w in words[2:]:
+        if "*" in w:
+            return True
+        if not w.startswith("-"):
+            return False
+    return False
+
+
 def _base(word: str) -> str:
     w = word.rstrip("*")
     return sug._VERSION.sub("", w).rstrip("-.") or w
@@ -139,10 +172,19 @@ def flags_for(rule: str) -> List[str]:
         if star and (_base(prog) in sug.INTERPRETERS or _base(prog) in sug.SHELLS
                      or (prog, sub) in sug.PM_RUN):
             f.add(F_DROPPED)
-        if prog in sug.RUNNERS or (prog, sub) in sug.RUNNER_PAIRS:
+        base = _base(prog)
+        if base in sug.RUNNERS or (prog, sub) in sug.RUNNER_PAIRS:
             f.add(F_RUNNER)
-        if prog in sug.NEVER or (prog, sub.rstrip("*")) in sug.NEVER_PAIRS:
+        if base in sug.NEVER or (prog, sub.rstrip("*")) in sug.NEVER_PAIRS:
             f.add(F_DESTRUCTIVE)
+        if base in WRITERS or (star and base in WRITERS_WITH_ARGS):
+            f.add(F_DESTRUCTIVE)
+        if base in ("sed", "gsed") and secrettouch._sed_in_place(words):
+            f.add(F_DESTRUCTIVE)
+        if star and (prog, sub.rstrip("*")) in DESTRUCTIVE_UNDER and _covers_under(words):
+            f.add(F_DESTRUCTIVE)
+        if star and (prog, sub.rstrip("*")) in RUNNER_UNDER and _covers_under(words):
+            f.add(F_RUNNER)
         if prog in sug.SUBCOMMAND_PROGRAMS and spec in (prog + " *", prog + "*"):
             f.add(F_ANYSUB)
         if not star and (len(words) >= 4 or any(ch in _ONEOFF_CHARS for ch in spec)):
@@ -165,7 +207,7 @@ def _shown(words: List[str]) -> Tuple[List[str], bool]:
 
 def display(rule: str, idx: Optional[int] = None) -> str:
     """Rule text as printed. Only public-shape words print (families.public_mask): the tool
-    name, a public program, a listed subcommand, a flag with no value, `*`. Every other word
+    name, a public program, a listed subcommand, a one-letter or listed flag, `*`. Every other word
     shows as <w>. No hash and no length of the rule text: the id is the rule's index."""
     rid = "" if idx is None else ", rule %d" % idx
     m = ccrules._RULE_RE.match(rule.strip()) if isinstance(rule, str) else None
@@ -356,9 +398,9 @@ def render(a: dict, header: str, fmt: str = "table") -> str:
         "    directory is the one logged with each call.",
         "  - A guard deny can be a false alarm (see datapce-scan replay). The count shows",
         "    where to look, not proof of harm.",
-        "  - Rule text prints only in public shapes (program, listed subcommand, flag with no",
-        "    value, *). <w> marks a hidden word; 'rule N' is the rule's place in the order of",
-        "    the settings files above.",
+        "  - Rule text prints only in public shapes (program, listed subcommand, one-letter",
+        "    or listed flag, *). <w> marks a hidden word; 'rule N' is the rule's place in the",
+        "    order of the settings files above.",
         "  - To change a rule, use /permissions or edit the settings file yourself.",
     ]
     return "\n".join(lines)

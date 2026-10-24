@@ -289,8 +289,9 @@ class PublicShapeDisplayTests(unittest.TestCase):
             self.assertNotIn("chars", shown, rule)
             self.assertIn("rule %d" % (k + 1), shown, rule)
         self.assertTrue(allowaudit.display(self.BREAKERS[0], 1).startswith("Bash(redis-cli -a "))
+        # --client-secret is not on a public long-flag list: it is hidden too
         self.assertTrue(allowaudit.display(self.BREAKERS[4], 5).startswith(
-            "Bash(psql --client-secret "))
+            "Bash(psql <w> <w> *)"))
         self.assertTrue(allowaudit.display(self.BREAKERS[5], 6).startswith("Bash(npm config "))
         self.assertEqual(allowaudit.display("Bash(git status:*)", 9), "Bash(git status:*)")
         self.assertEqual(allowaudit.display("mcp__github__*", 9), "mcp__github__*")
@@ -319,3 +320,61 @@ class PublicShapeDisplayTests(unittest.TestCase):
                         self.assertNotIn(w, out, extra)
                     self.assertNotRegex(out, r"#[0-9a-f]{8}")
                     self.assertIn("Bash(git status:*)", out)
+
+
+class LongFlagAllowListTests(unittest.TestCase):
+    """A long flag prints only if it is on the public list for its program (or the short
+    common list). Any other long flag can be a private word and shows as <w>."""
+
+    def test_private_long_flag_is_hidden(self):
+        for rule in ("Bash(./deploy --acmecorp-prod)", "Bash(git log --acmecorp-prod)",
+                     "Bash(git push --acmecorp-prod *)", "Bash(mytool --acmecorp-prod)",
+                     "Bash(ls --acmecorp-prod)"):
+            shown = allowaudit.display(rule, 1)
+            self.assertNotIn("acmecorp", shown, rule)
+            self.assertIn("<w>", shown, rule)
+
+    def test_public_long_flags_still_print(self):
+        self.assertEqual(allowaudit.display("Bash(git log --oneline *)", 1),
+                         "Bash(git log --oneline *)")
+        self.assertEqual(allowaudit.display("Bash(git branch --show-current)", 1),
+                         "Bash(git branch --show-current)")
+        self.assertEqual(allowaudit.display("Bash(ls --help)", 1), "Bash(ls --help)")
+        self.assertEqual(allowaudit.display("Bash(gh pr list --json *)", 1),
+                         "Bash(gh pr list --json *)")
+        # a flag on another program's list does not print here
+        self.assertIn("<w>", allowaudit.display("Bash(ls --oneline)", 1))
+
+    def test_cli_hides_private_long_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = make_fixture(os.path.join(d, "projects"))
+            settings = os.path.join(d, "s.json")
+            with open(settings, "w") as f:
+                json.dump({"permissions": {"allow": ["Bash(./deploy --acmecorp-prod)",
+                                                     "Bash(git log --acmecorp-prod)"]}}, f)
+            for extra in ([], ["--json"], ["--tsv"]):
+                code, out, err = run(["allow-audit", "--projects", root, "--settings",
+                                      settings] + extra)
+                self.assertEqual(code, 0, err)
+                self.assertNotIn("acmecorp", out, extra)
+
+
+class DestructiveFlagFormTests(unittest.TestCase):
+    """A rule gets the destructive flag when its wildcard covers a form that can delete,
+    overwrite or send data: rm*, sed *, cp *, awk *, git worktree*, git branch -D * ..."""
+
+    def test_destructive_forms(self):
+        for rule in ("Bash(rm*)", "Bash(rm *)", "Bash(sed *)", "Bash(sed:*)", "Bash(cp *)",
+                     "Bash(cp a b)", "Bash(awk *)", "Bash(tee *)", "Bash(git worktree*)",
+                     "Bash(git worktree *)", "Bash(git branch -D *)", "Bash(git stash *)",
+                     "Bash(git tag*)", "Bash(aws s3 *)", "Bash(docker compose *)",
+                     "Bash(gh pr *)", "Bash(sed -i s/a/b/ f)"):
+            self.assertIn(allowaudit.F_DESTRUCTIVE, allowaudit.flags_for(rule), rule)
+        for rule in ("Bash(xargs*)", "Bash(tmux new-session *)", "Bash(git submodule*)"):
+            self.assertIn(allowaudit.F_RUNNER, allowaudit.flags_for(rule), rule)
+
+    def test_narrow_forms_not_flagged(self):
+        for rule in ("Bash(git worktree list)", "Bash(git worktree list *)",
+                     "Bash(git stash list *)", "Bash(sed -n 1p f)", "Bash(awk '{print}' f)",
+                     "Bash(git status:*)", "Bash(git branch --show-current)"):
+            self.assertNotIn(allowaudit.F_DESTRUCTIVE, allowaudit.flags_for(rule), rule)

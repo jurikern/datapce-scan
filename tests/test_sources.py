@@ -56,6 +56,33 @@ class SourceTests(unittest.TestCase):
                  for p in fs}
         self.assertEqual(before, after)
 
+    def test_skips_dangling_links_and_dirs(self):
+        base = {subs: sources.read_claude_code(self.root, include_subagents=subs) for subs in (False, True)}
+        proj = os.path.join(self.root, "-odd")
+        os.makedirs(os.path.join(proj, "x.jsonl"))  # a directory with a .jsonl name
+        os.symlink(os.path.join(self.tmp.name, "gone.jsonl"), os.path.join(proj, "dangling.jsonl"))
+        sub = os.path.join(proj, "s1", "subagents")
+        os.makedirs(os.path.join(sub, "y.jsonl"))
+        os.symlink(os.path.join(self.tmp.name, "gone2.jsonl"), os.path.join(sub, "dangling.jsonl"))
+        for subs in (False, True):
+            res = sources.read_claude_code(self.root, include_subagents=subs)
+            self.assertEqual((res.files, len(res.calls), res.bad_lines),
+                             (base[subs].files, len(base[subs].calls), base[subs].bad_lines))
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root reads mode-000 files")
+    def test_unreadable_file_is_skipped(self):
+        base = sources.read_claude_code(self.root)
+        locked = os.path.join(self.root, "-odd", "locked.jsonl")
+        os.makedirs(os.path.dirname(locked))
+        with open(locked, "w") as fh:
+            fh.write("{}\n")
+        os.chmod(locked, 0)
+        try:
+            res = sources.read_claude_code(self.root)
+        finally:
+            os.chmod(locked, 0o600)
+        self.assertEqual(len(res.calls), len(base.calls))
+
 
 if __name__ == "__main__":
     unittest.main()

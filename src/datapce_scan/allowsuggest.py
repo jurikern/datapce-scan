@@ -5,7 +5,7 @@ rules (ccrules). A call is permission-relevant if one subcommand is not in the b
 read-only set. Deny by default, exact rules only (fix round 2): a subcommand gives a candidate
 rule `Bash(<text as written>)` only if its command form is on SAFE_FORMS (a curated read-only
 list), its text has no `*`, `$`, backtick, quote or backslash, and every word has a public
-shape (families.public_mask: public program, listed subcommand, flag with no value). No rule
+shape (families.public_mask: public program, listed subcommand, one-letter or listed flag). No rule
 has a `*`. Every other public form goes to a "needs your judgment" list with its call count and
 is never suggested. Forms that auto mode drops (interpreters,
 package-manager run commands, shells), runners, and programs that delete, overwrite or send data
@@ -525,7 +525,7 @@ def render(s: dict, header: str, fmt: str = "table") -> str:
     lines += ["  This check covers past matches only. It does not prove that a rule cannot match",
               "  a destructive command later. Each rule is one exact command (no *), seen at",
               "  least %d times, of a curated read-only form, built only from public words" % s["min_calls"],
-              "  (program, listed subcommand, flags with no value)."]
+              "  (program, listed subcommand, one-letter or listed flags)."]
     nj = s["needs_judgment"]
     lines += ["", "Needs your judgment (no exact read-only rule; never suggested)  "
                   "[command form, calls, sessions]  %d forms, %d subcommands" % (

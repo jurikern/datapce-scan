@@ -1,15 +1,15 @@
 """secret-touch: past tool calls that read or printed secret-shaped files or values. Read only.
 
 A secret-shaped file is found by name and place (.env, credentials, ~/.ssh/id_*, *.pem, ...),
-in the target of Read, Grep, Glob, Edit and Write calls, and in the arguments of Bash
-subcommands (heredoc bodies are not arguments). A secret-shaped value is found by its form
+in the target of Read, Grep, Glob, Edit and Write calls, and in the arguments and redirects of
+Bash subcommands (heredoc bodies are not arguments). tee, the cp or mv target and sed -i write
+their files (sed -i reads them too); other file arguments are reads. A secret-shaped value is found by its form
 (secretkinds) in the call input and in the tool result. The output holds safe path labels,
 kinds and counts only: never a value, never a full path, never a private file name.
 
 Python 3.9+, stdlib only.
 """
 import collections
-import hashlib
 import json
 import os
 import posixpath
@@ -91,7 +91,15 @@ def secret_path(path: str, home: str) -> bool:
     return ext in EXT and len(base) > len(ext)
 
 
-def _generic(base: str) -> str:
+def _private_id(base: str, ids: Optional[Dict[str, int]]) -> str:
+    """An index id for a private file name: #1, #2, ... in the order first seen. No hash: a
+    short hash of a name can be found by a dictionary search."""
+    if ids is None:
+        ids = {}
+    return "#%d" % ids.setdefault(base, len(ids) + 1)
+
+
+def _generic(base: str, ids: Optional[Dict[str, int]] = None) -> str:
     if base in NAMES:
         return base
     if base == ".env":
@@ -102,11 +110,13 @@ def _generic(base: str) -> str:
     ext = posixpath.splitext(base)[1]
     if ext in EXT:
         return EXT[ext]
-    return "secret-shaped file #" + hashlib.sha256(base.encode("utf-8")).hexdigest()[:6]
+    return "secret-shaped file " + _private_id(base, ids)
 
 
-def label(path: str, cwd: Optional[str], home: str, hash_repos: bool = False) -> str:
-    """A safe label: ~/<known dir>/<generic name>, or '<generic name> (repo <label>)'."""
+def label(path: str, cwd: Optional[str], home: str, hash_repos: bool = False,
+          ids: Optional[Dict[str, int]] = None) -> str:
+    """A safe label: ~/<known dir>/<generic name>, or '<generic name> (repo <label>)'. A
+    private name gets an index id from ids (shared over one scan)."""
     path = posixpath.normpath(path)
     base = posixpath.basename(path)
     h = home.rstrip("/")
@@ -115,24 +125,23 @@ def label(path: str, cwd: Optional[str], home: str, hash_repos: bool = False) ->
         if rel[0] in HOME_SECRET and len(rel) > 1:
             known = HOME_SECRET[rel[0]]
             if rel[0] == ".ssh":
-                name = base if base in NAMES else "key file #" + hashlib.sha256(
-                    base.encode("utf-8")).hexdigest()[:6]
+                name = base if base in NAMES else "key file " + _private_id(base, ids)
             elif known and base in known:
                 name = base
             else:
-                name = _generic(base)
+                name = _generic(base, ids)
             mid = "/".join(rel[1:-1])
             mid = (mid + "/") if mid in ("gh", "gcloud") else ("" if not mid else ".../")
             return "~/%s/%s%s" % (rel[0], mid, name)
         if len(rel) == 1:
-            return "~/" + _generic(base)
+            return "~/" + _generic(base, ids)
     root = None
     if cwd:
         c = cwd.split(report.WORKTREE_MARK, 1)[0].rstrip("/")
         if path.startswith(c + "/"):
             root = c
     where = ("repo " + report.repo_label(root, home, hash_repos)) if root else "other dir"
-    return "%s (%s)" % (_generic(base), where)
+    return "%s (%s)" % (_generic(base, ids), where)
 
 
 _HOME_VAR = re.compile(r"^(?:\$HOME|\$\{HOME\})(?=/|$)")
@@ -202,9 +211,15 @@ def _file_args(argv: List[str]) -> List[str]:
     """The arguments of one command that can be files. For grep, rg, sed, awk and jq the
     pattern or program argument is left out (unless -e or -f gave it). Short options can be
     grouped (-rA 2, -m1): the first option in a group that takes a value ends the group."""
+    files, pos = _split_args(argv)
+    return files + pos
+
+
+def _split_args(argv: List[str]) -> Tuple[List[str], List[str]]:
+    """(pattern or program files given with -f, other file arguments); see _file_args."""
     fam = _PATTERN_FAMILY.get(os.path.basename(argv[0]))
     if fam is None:
-        return argv[1:]
+        return [], argv[1:]
     files: List[str] = []
     pos: List[str] = []
     given = False
@@ -257,7 +272,105 @@ def _file_args(argv: List[str]) -> List[str]:
         i += step
     if not given and pos:
         pos = pos[1:]
-    return files + pos
+    return files, pos
+
+
+def _sed_in_place(argv: List[str]) -> bool:
+    """sed -i, -i.bak, -Ei or --in-place[=SUF]: the file arguments are edited (written)."""
+    for a in argv[1:]:
+        if a == "--":
+            return False
+        if a.startswith("--"):
+            if a == "--in-place" or a.startswith("--in-place="):
+                return True
+            continue
+        if not a.startswith("-") or a == "-":
+            continue
+        for ch in a[1:]:
+            if ch == "i":
+                return True
+            if ch in "efl":  # takes a value: the rest of the word is that value
+                break
+    return False
+
+
+def _positional(args: List[str], with_value: str) -> Tuple[List[str], Optional[str]]:
+    """(positional words, -t / --target-directory value) of cp, mv or tee arguments.
+    with_value holds the short option letters that take a value (cp and mv: t, the target
+    directory, and S, the backup suffix; tee: none). In a short group (-fS .bak, -S.bak, -rt DIR) the first such letter
+    takes the rest of the word, or the next word if the rest is empty."""
+    pos: List[str] = []
+    target = None
+    long_value = {"--suffix"} if "S" in with_value else set()
+    i = 0
+    while i < len(args):
+        a = args[i]
+        nxt = args[i + 1] if i + 1 < len(args) else None
+        if a == "--":
+            pos.extend(args[i + 1:])
+            break
+        if a.startswith("--"):
+            name, eq, val = a.partition("=")
+            if name == "--target-directory" and "t" in with_value:
+                target = val if eq else nxt
+                i += 1 if eq else 2
+            elif name in long_value and not eq:
+                i += 2
+            else:
+                i += 1
+            continue
+        if not a.startswith("-") or a == "-":
+            pos.append(a)
+            i += 1
+            continue
+        step = 1
+        for k in range(1, len(a)):
+            ch, rest = a[k], a[k + 1:]
+            if ch in with_value:
+                if ch == "t":
+                    target = rest or nxt
+                step = 1 if rest else 2
+                break
+        i += step
+    return pos, target
+
+
+def _into(directory: str, src: str) -> str:
+    return posixpath.join(directory, posixpath.basename(src.rstrip("/")))
+
+
+def _file_roles(argv: List[str]) -> Tuple[List[str], List[str]]:
+    """(file arguments read, file arguments written) of one command. tee writes its files;
+    cp reads its other words and writes the target (and into it if -t gives a directory, the
+    target ends with / or ., or there are two or more sources); mv writes the target only; sed -i
+    reads and writes its files. Programs in NOREAD read no file argument."""
+    prog = os.path.basename(argv[0])
+    if prog == "tee":
+        return [], _positional(argv[1:], "")[0]
+    if prog in ("cp", "mv"):
+        pos, target = _positional(argv[1:], "tS")
+        srcs = pos
+        if target is None and len(pos) < 2:
+            writes: List[str] = []
+        elif target is None and len(pos) == 2 and not (
+                pos[1].endswith("/") or pos[1] in (".", "..")):
+            writes = [pos[1]]
+        else:
+            if target is None:
+                srcs, target = pos[:-1], pos[-1]
+            # the target directory itself counts too (a secret-shaped name stays counted)
+            writes = [target] + [_into(target, x) for x in srcs]
+        if prog == "mv":
+            return [], writes
+        # cp: every other word counts as a read, as before (an option value such as the -S
+        # suffix is not a file, but a touch must never disappear)
+        return [a for a in argv[1:] if a not in writes], writes
+    if prog in NOREAD:
+        return [], []
+    if _PATTERN_FAMILY.get(prog) == "sed" and _sed_in_place(argv):
+        files, pos = _split_args(argv)
+        return files + pos, pos  # sed -i reads its files and writes them back
+    return _file_args(argv), []
 
 
 def _store_kind(argv: List[str]) -> Optional[str]:
@@ -271,8 +384,8 @@ def _store_kind(argv: List[str]) -> Optional[str]:
 
 def _redirect_paths(command: str, cwd: Optional[str], home: str) -> List[Tuple[str, str]]:
     """(path, 'reads' or 'writes') for file redirects: < file reads, > >> &> file writes.
-    Here-strings, here-docs, /dev/null and fd copies or closes (2>&1, <&3) are not files
-    (ccrules.no_op_redirect); >&file is a write. cd at the top level moves
+    Here-strings, here-docs, /dev/null, /dev/stdout and the like, fd copies or closes (2>&1,
+    <&3) and <&file (an error in bash) are not files (ccrules.opens_file); >&file is a write. cd at the top level moves
     the directory that later relative targets resolve against."""
     subs = ccrules.subcommands(command)
     out: List[Tuple[str, str]] = []
@@ -285,7 +398,7 @@ def _redirect_paths(command: str, cwd: Optional[str], home: str) -> List[Tuple[s
             nxt = _resolve(args[0], cur, home) if args else None
             cur = posixpath.normpath(nxt) if nxt else cur
         for op, target in sub.redirects:
-            if op in ("<<<", "<<") or ccrules.no_op_redirect(op, target):
+            if not ccrules.opens_file(op, target):
                 continue
             p = _resolve(target, cur, home)
             if p:
@@ -297,20 +410,23 @@ def scan(res, home: str, hash_repos: bool = False) -> dict:
     files: Dict[str, dict] = {}
     stores = collections.Counter()
     kinds: Dict[str, Dict[str, set]] = collections.defaultdict(
-        lambda: {"input": set(), "output": set(), "placeholder": set()})
+        lambda: {"input": set(), "input_placeholder": set(), "output": set(),
+                 "placeholder": set()})
     read_calls, write_calls, store_calls, in_calls, out_calls, out_ph = (set() for _ in range(6))
     in_ph = set()
     days = collections.Counter()
     sessions = set()
 
+    ids: Dict[str, int] = {}
+
     def touch(i, c, path, how):
-        lab = label(path, c.cwd, home, hash_repos)
+        lab = label(path, c.cwd, home, hash_repos, ids)
         f = files.setdefault(lab, {"path": lab, "reads": 0, "writes": 0,
                                    "tools": collections.Counter(), "sessions": set(),
                                    "first_day": c.ts[:10], "last_day": c.ts[:10], "_calls": set()})
-        if i in f["_calls"]:
+        if (i, how) in f["_calls"]:
             return
-        f["_calls"].add(i)
+        f["_calls"].add((i, how))
         f[how] += 1
         f["tools"][c.tool] += 1
         f["sessions"].add(c.session)
@@ -336,20 +452,20 @@ def scan(res, home: str, hash_repos: bool = False) -> dict:
                 if sk:
                     stores[sk] += 1
                     store_calls.add(i)
-                prog = os.path.basename(argv[0])
-                if prog in NOREAD:
-                    continue
                 cwd = ctx.cwds[k] if k < len(ctx.cwds) else c.cwd
-                for tok in _file_args(argv):
-                    p = _resolve(tok, cwd, home)
-                    if p and secret_path(p, home):
-                        touch(i, c, p, "reads")
+                for how, toks in zip(("reads", "writes"), _file_roles(argv)):
+                    for tok in toks:
+                        p = _resolve(tok, cwd, home)
+                        if p and secret_path(p, home):
+                            touch(i, c, p, how)
             for p, how in _redirect_paths(c.command, c.cwd, home):
                 if secret_path(p, home):
                     touch(i, c, p, how)
         for kd in c.input_kinds:
             kinds[kd]["input"].add(i)
             in_calls.add(i)
+            if kd in c.input_ph:
+                kinds[kd]["input_placeholder"].add(i)
         if c.input_kinds and set(c.input_kinds) == set(c.input_ph):
             in_ph.add(i)
         for kd in c.output_kinds:
@@ -371,7 +487,9 @@ def scan(res, home: str, hash_repos: bool = False) -> dict:
                       "tools": dict(sorted(f["tools"].items())),
                       "sessions": len(f["sessions"] - {None}),
                       "first_day": f["first_day"], "last_day": f["last_day"]})
-    krows = [{"kind": k, "input_calls": len(v["input"]), "output_calls": len(v["output"]),
+    krows = [{"kind": k, "input_calls": len(v["input"]),
+              "input_placeholder_calls": len(v["input_placeholder"]),
+              "output_calls": len(v["output"]),
               "output_placeholder_calls": len(v["placeholder"])}
              for k, v in sorted(kinds.items(), key=lambda kv: (-len(kv[1]["output"]), kv[0]))]
     rotate = [f["path"] for f in frows if f["reads"]][:10]
@@ -405,8 +523,9 @@ def render(s: dict, header: str, fmt: str = "table") -> str:
         out += ["totals\t%s\t%s" % kv for kv in s["totals"].items()]
         out += ["file\t%s\t%d\t%d" % (f["path"], f["reads"], f["writes"]) for f in s["files"]]
         out += ["store\t%s\t%d" % kv for kv in s["stores"].items()]
-        out += ["value\t%s\t%d\t%d\t%d" % (k["kind"], k["input_calls"], k["output_calls"],
-                                          k["output_placeholder_calls"]) for k in s["values"]]
+        out += ["value\t%s\t%d\t%d\t%d\t%d" % (  # new fields go at the end of the row
+            k["kind"], k["input_calls"], k["output_calls"], k["output_placeholder_calls"],
+            k["input_placeholder_calls"]) for k in s["values"]]
         return "\n".join(out)
     t, src = s["totals"], s["source"]
     lines = [header,
@@ -420,7 +539,8 @@ def render(s: dict, header: str, fmt: str = "table") -> str:
         ["tool calls scanned", t["tool_calls"]],
         ["read a secret-shaped file (Read, Grep, Bash cat/grep/source/cp, < redirect ...)",
          t["read_file_calls"]],
-        ["wrote a secret-shaped file (Edit, Write, Bash > redirect)", t["write_file_calls"]],
+        ["wrote a secret-shaped file (Edit, Write, Bash > redirect, tee, cp/mv target, sed -i)",
+         t["write_file_calls"]],
         ["read a secret store or dumped the environment", t["store_or_env_calls"]],
         ["secret-shaped value in the call input (command or file text)",
          "%d  (placeholder-like only: %d)" % (t["input_value_calls"], t["input_placeholder_calls"])],
@@ -436,10 +556,10 @@ def render(s: dict, header: str, fmt: str = "table") -> str:
                       f["first_day"], f["last_day"]] for f in s["files"]])
     lines += ["", "Secret stores and environment  [kind, calls]"]
     lines += _table([[k, v] for k, v in s["stores"].items()])
-    lines += ["", "Secret-shaped values  [kind, calls with it in the input, in the output, "
-                  "output placeholder-like]"]
-    lines += _table([[k["kind"], k["input_calls"], k["output_calls"],
-                      k["output_placeholder_calls"]] for k in s["values"]])
+    lines += ["", "Secret-shaped values  [kind, calls with it in the input, input "
+                  "placeholder-like, in the output, output placeholder-like]"]
+    lines += _table([[k["kind"], k["input_calls"], k["input_placeholder_calls"],
+                      k["output_calls"], k["output_placeholder_calls"]] for k in s["values"]])
     r = s["rotate_first"]
     lines += ["", "Rotate first (if these transcripts or an agent tool that saw them were exposed):"]
     lines += ["  files:  " + (", ".join(r["files"]) if r["files"] else "(none)"),

@@ -323,3 +323,45 @@ class RedirectRuleTests(unittest.TestCase):
             sub = ccrules.subcommands(cmd)[0]
             self.assertFalse(ccrules.writes_file(sub), cmd)
             self.assertTrue(ccrules.sub_read_only(sub), cmd)
+
+
+class AssignmentOnlyTests(unittest.TestCase):
+    """A command of assignments only keeps its redirect (X=1 > f writes f) and its PATH or
+    IFS write."""
+
+    def test_assignment_only_redirect(self):
+        for cmd in ("X=1 > .env", "A=1 B=2 >> out.txt", "true && X=1 >f"):
+            subs = ccrules.subcommands(cmd)
+            self.assertTrue(any(ccrules.writes_file(s) for s in subs), cmd)
+        self.assertTrue(any(ccrules.writes_special(s) for s in ccrules.subcommands("PATH=/x")))
+        self.assertTrue(any(ccrules.writes_special(s)
+                            for s in ccrules.subcommands("cd /w && IFS=, ")))
+        self.assertEqual(ccrules.subcommands("X=1"), [])
+
+
+class StdDeviceRedirectTests(unittest.TestCase):
+    """/dev/stdin, /dev/stdout, /dev/stderr and /dev/fd/N name a file descriptor, not a file.
+    <&word with a word that is not digits or - is an error in bash (ambiguous redirect)."""
+
+    def test_std_devices_write_no_file(self):
+        for cmd in ("echo x > /dev/stderr", "echo x >/dev/stdout", "echo x >> /dev/stderr",
+                    "echo x > /dev/fd/2", "echo x >&/dev/stderr", "echo x 2>/dev/fd/1"):
+            sub = ccrules.subcommands(cmd)[0]
+            self.assertFalse(ccrules.writes_file(sub), cmd)
+            self.assertTrue(ccrules.sub_read_only(sub), cmd)
+        for cmd in ("echo x > /dev/tty", "echo x > /dev/fd/x", "echo x > /dev/stderr.log",
+                    "echo x > /dev/stderr && echo y > out.txt"):
+            subs = ccrules.subcommands(cmd)
+            self.assertTrue(any(ccrules.writes_file(s) for s in subs), cmd)
+
+    def test_opens_file(self):
+        for op, target in (("<&", ".env"), ("<&", "3"), ("<<<", "x"), ("<<", "EOF"),
+                           (">", "/dev/stdout"), (">", "/dev/null"), (">&", "2")):
+            self.assertFalse(ccrules.opens_file(op, target), (op, target))
+        for op, target in ((">&", ".env"), ("<", ".env"), (">", "/dev/tty"), ("&>", "f")):
+            self.assertTrue(ccrules.opens_file(op, target), (op, target))
+
+    def test_replay_text_keeps_std_device_redirects(self):
+        from datapce_scan import allowsuggest
+        sub = ccrules.subcommands("echo x > /dev/stderr")[0]
+        self.assertIn("/dev/stderr", allowsuggest.replay_text(sub))

@@ -591,3 +591,26 @@ class ReplayNoOpRedirectTests(unittest.TestCase):
                           ("dd if=a > /dev/sda", "dd if=a > /dev/sda"),
                           ("sort < in.txt", "sort < in.txt")):
             self.assertEqual(allowsuggest.replay_text(ccrules.subcommands(cmd)[0]), want, cmd)
+
+
+class LongFlagAllowListSuggestTests(unittest.TestCase):
+    """A rule word must have a public shape: a long flag only from the public list of its
+    program. A private long flag gives no exact rule and never prints."""
+
+    def test_rule_for_private_long_flag(self):
+        rule, reason = allowsuggest.rule_for(["uname", "--acmecorp-prod"])
+        self.assertIsNone(rule)
+        self.assertEqual(reason, allowsuggest.R_SHAPE)
+        self.assertEqual(allowsuggest.rule_for(["uname", "--all"])[0], "Bash(uname --all)")
+
+    def test_cli_never_prints_private_long_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            calls = [bash("f%d" % k, c) for k, c in enumerate(
+                ["uname --acmecorp-prod"] * 3 + ["./deploy --acmecorp-prod"] * 3)]
+            write_project(d, "-Users-someone-src-alpha", "f1", [
+                assistant_line("2026-10-22T10:00:00Z", "f1", CWD, calls)])
+            with mock.patch.dict(os.environ, {"HOME": HOME}):
+                for extra in ([], ["--json"], ["--tsv"]):
+                    code, out, err = run(["allow-suggest", "--projects", d] + extra)
+                    self.assertEqual(code, 0, err)
+                    self.assertNotIn("acmecorp", out, extra)
